@@ -62,6 +62,7 @@ async def lifespan(app: FastAPI):
 # The dispatcher only approves or rejects the proposed effect.
 analyses: dict[str, dict] = {}
 _inflight: set[str] = set()
+_force_live: set[str] = set()  # frames whose next analysis must call the model (Re-analyze)
 
 
 def _auto_analyze_loop():
@@ -72,13 +73,14 @@ def _auto_analyze_loop():
             if (a is None or a.get("version") != v) and fid not in _inflight:
                 _inflight.add(fid)
                 analyses[fid] = {"frame_id": fid, "version": v, "status": "processing"}
-                executor.submit(_do_analyze, fid, v)
+                executor.submit(_do_analyze, fid, v, "auto" if fid in _force_live else "cached")
+                _force_live.discard(fid)
         time.sleep(3)
 
 
-def _do_analyze(fid: str, v: int):
+def _do_analyze(fid: str, v: int, mode: str = "cached"):
     try:
-        res = vision.analyze(fid, "auto")
+        res = vision.analyze(fid, mode)
     except Exception as e:
         res = {"status": "failed", "result": None, "error": type(e).__name__}
     finally:
@@ -220,7 +222,8 @@ def rerun_analysis(frame_id: str):
         raise HTTPException(404, "Unknown frame")
     if frame_id in _inflight:
         return {"status": "processing"}
-    analyses.pop(frame_id, None)  # the auto loop picks it up within a few seconds
+    _force_live.add(frame_id)
+    analyses.pop(frame_id, None)  # the auto loop re-analyzes with a live model call within a few seconds
     return {"status": "queued"}
 
 

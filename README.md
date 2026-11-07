@@ -19,7 +19,7 @@ Optional keys go in `.env.local` (see `.env.example`). Without them:
 
 | Integration | With key | Without key |
 |---|---|---|
-| Gemini | Automatic analysis of each camera video/image (`GEMINI_MODEL`, falls back to `GEMINI_FALLBACK_MODEL`); every live result is saved in `data/frames/recorded/` | Saved result replayed, labeled **RECORDED GEMINI RESULT** |
+| Gemini | Automatic analysis of each camera video/image (`GEMINI_MODEL`, falls back to `GEMINI_FALLBACK_MODEL`); every live result is saved in `data/frames/recorded/`. On restart the saved result for the same media is reused (no model call); **↻ Re-analyze** forces a live call | Saved result replayed, labeled **RECORDED GEMINI RESULT** |
 | Tiger Data | Checkpoints + segment telemetry written to TimescaleDB; history endpoints work | Simulation runs in memory only |
 | ElevenLabs | Generated dispatch audio | Text alerts (browser TTS fallback) |
 

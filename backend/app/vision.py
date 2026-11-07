@@ -121,12 +121,23 @@ class Vision:
 
     # ------------------------------------------------------------- analysis
     def analyze(self, frame_id: str, mode: str = "auto") -> dict:
-        """Blocking; run outside the simulation lock. mode: auto | live | replay. Never invents a result."""
+        """Blocking; run outside the simulation lock. Never invents a result.
+
+        mode: auto (live first) | live (live only) | replay (recording only) |
+              cached (recording for the same media hash first, else live) - avoids re-calling the model on restarts.
+        """
         frame = self.frames[frame_id]
         path = self.frame_path(frame)
         base = {"frame_id": frame_id, "camera_id": frame.get("camera_id"), "segment_ids": frame["segment_ids"],
                 "observed_at": frame.get("observed_at"), "received_at": datetime.now(timezone.utc).isoformat()}
         live_error = None
+
+        if mode == "cached":
+            rec = self.recording(frame_id)
+            if rec is not None:
+                return {**base, "status": "done", "source_kind": "recorded_inference", "model_id": rec["model_id"],
+                        "recorded_at": rec["recorded_at"], "result": rec["result"]}
+            mode = "auto"
 
         if mode in ("auto", "live") and self.key and path.suffix.lower() in MEDIA and path.exists():
             try:
