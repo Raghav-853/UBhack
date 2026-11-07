@@ -1,0 +1,29 @@
+{
+  "note": "Replace image files with permitted camera captures (JPG/PNG) and fill observed_at, source and license. SVG drawings are synthetic fixtures and are never sent to Gemini.",
+  "frames": [
+    {
+      "frame_id": "CAM-K1", "camera_id": "CAM-K1", "title": "Kensington Ave near ECMC",
+      "image": "cam-K1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
+      "observed_at": null, "segment_ids": ["S023", "S019"],
+      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
+        "surface_class": "snow_covered", "visibility_class": "reduced", "obstruction": "yes",
+        "evidence_summary": "Illustrative fixture: a stopped vehicle blocks the right travel lane."}}
+    },
+    {
+      "frame_id": "CAM-M1", "camera_id": "CAM-M1", "title": "Main St at Kensington Ave",
+      "image": "cam-M1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
+      "observed_at": null, "segment_ids": ["S045", "S044"],
+      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
+        "surface_class": "snow_covered", "visibility_class": "good", "obstruction": "no",
+        "evidence_summary": "Illustrative fixture: snow-covered lanes, open, good visibility."}}
+    },
+    {
+      "frame_id": "CAM-F1", "camera_id": "CAM-F1", "title": "Fillmore Ave",
+      "image": "cam-F1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
+      "observed_at": null, "segment_ids": ["S063", "S065"],
+      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
+        "surface_class": "snow_covered", "visibility_class": "poor", "obstruction": "no",
+        "evidence_summary": "Illustrative fixture: heavy falling snow sharply limits visibility."}}
+    }
+  ]
+}
