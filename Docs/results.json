@@ -1,0 +1,245 @@
+{
+  "generated_at": "2026-11-07T22:37:28.547801+00:00",
+  "commit": "8415fe0",
+  "uncommitted_changes": false,
+  "params": {
+    "min_service_depth_in": 1.0,
+    "residual_in": 0.2,
+    "threshold_in": 1.5,
+    "horizon_s": 1800,
+    "corridor_beta": 3.0,
+    "closure_duration_s": 2700,
+    "visibility_factor": {
+      "reduced": 0.8,
+      "poor": 0.6
+    },
+    "slowdown_duration_s": 3600
+  },
+  "vehicle_types": {
+    "heavy_plow": {
+      "label": "Heavy plow",
+      "travel_mps": 11.2,
+      "service_mps": 6.7
+    },
+    "compact_blower": {
+      "label": "Compact blower",
+      "travel_mps": 6.7,
+      "service_mps": 2.2
+    }
+  },
+  "results": {
+    "clear_weather": {
+      "run_id": "8fa6825277",
+      "scenario_version": "1565f307d8ea",
+      "fleet": [
+        "P1:heavy_plow",
+        "B1:compact_blower"
+      ],
+      "applications": [],
+      "metrics": {
+        "fixed": {
+          "critical_exposure_min": 0.0,
+          "exposure_min": 0.0,
+          "distance_km": 0.0,
+          "travel_km": 0.0,
+          "service_km": 0.0,
+          "deadhead_pct": 0.0,
+          "services": 0,
+          "unique_segments": 0,
+          "reaccumulations": 0,
+          "median_reaccum_min": null,
+          "crew_hours": 0.0,
+          "inch_km_cleared": 0.0,
+          "inch_km_per_crew_hour": 0.0,
+          "critical_over_now": 0,
+          "critical_total": 45,
+          "avg_critical_depth_in": 0.0
+        },
+        "adaptive": {
+          "critical_exposure_min": 0.0,
+          "exposure_min": 0.0,
+          "distance_km": 0.0,
+          "travel_km": 0.0,
+          "service_km": 0.0,
+          "deadhead_pct": 0.0,
+          "services": 0,
+          "unique_segments": 0,
+          "reaccumulations": 0,
+          "median_reaccum_min": null,
+          "crew_hours": 0.0,
+          "inch_km_cleared": 0.0,
+          "inch_km_per_crew_hour": 0.0,
+          "critical_over_now": 0,
+          "critical_total": 45,
+          "avg_critical_depth_in": 0.0
+        }
+      },
+      "reproduced": true,
+      "label": "Clear weather (control)",
+      "description": "No snowfall. Dispatch must not invent work on clear roads."
+    },
+    "stationary_band": {
+      "run_id": "9a2c8fde8c",
+      "scenario_version": "da1936a8a513",
+      "fleet": [
+        "P1:heavy_plow",
+        "B1:compact_blower"
+      ],
+      "applications": [],
+      "metrics": {
+        "fixed": {
+          "critical_exposure_min": 5394.5,
+          "exposure_min": 17898.0,
+          "distance_km": 282.24,
+          "travel_km": 197.36,
+          "service_km": 84.88,
+          "deadhead_pct": 69.9,
+          "services": 369,
+          "unique_segments": 76,
+          "reaccumulations": 349,
+          "median_reaccum_min": 22.4,
+          "crew_hours": 11.65,
+          "inch_km_cleared": 324.19,
+          "inch_km_per_crew_hour": 27.83,
+          "critical_over_now": 26,
+          "critical_total": 45,
+          "avg_critical_depth_in": 2.13
+        },
+        "adaptive": {
+          "critical_exposure_min": 905.2,
+          "exposure_min": 13461.0,
+          "distance_km": 263.88,
+          "travel_km": 156.73,
+          "service_km": 107.15,
+          "deadhead_pct": 59.4,
+          "services": 605,
+          "unique_segments": 76,
+          "reaccumulations": 371,
+          "median_reaccum_min": 22.4,
+          "crew_hours": 11.65,
+          "inch_km_cleared": 314.75,
+          "inch_km_per_crew_hour": 27.02,
+          "critical_over_now": 5,
+          "critical_total": 45,
+          "avg_critical_depth_in": 0.87
+        }
+      },
+      "reproduced": true,
+      "label": "Stationary band",
+      "description": "A 3.5 in/hr band parked over the ECMC / Kensington area; demand stays geographically stable."
+    },
+    "moving_band": {
+      "run_id": "ce5799f8c5",
+      "scenario_version": "958236894c8b",
+      "fleet": [
+        "P1:heavy_plow",
+        "B1:compact_blower"
+      ],
+      "applications": [],
+      "metrics": {
+        "fixed": {
+          "critical_exposure_min": 4009.0,
+          "exposure_min": 13761.0,
+          "distance_km": 278.28,
+          "travel_km": 193.22,
+          "service_km": 85.07,
+          "deadhead_pct": 69.4,
+          "services": 331,
+          "unique_segments": 103,
+          "reaccumulations": 227,
+          "median_reaccum_min": 46.7,
+          "crew_hours": 11.52,
+          "inch_km_cleared": 163.98,
+          "inch_km_per_crew_hour": 14.24,
+          "critical_over_now": 13,
+          "critical_total": 45,
+          "avg_critical_depth_in": 1.3
+        },
+        "adaptive": {
+          "critical_exposure_min": 511.5,
+          "exposure_min": 8736.3,
+          "distance_km": 272.89,
+          "travel_km": 186.36,
+          "service_km": 86.53,
+          "deadhead_pct": 68.3,
+          "services": 390,
+          "unique_segments": 103,
+          "reaccumulations": 178,
+          "median_reaccum_min": 83.1,
+          "crew_hours": 11.24,
+          "inch_km_cleared": 163.85,
+          "inch_km_per_crew_hour": 14.58,
+          "critical_over_now": 1,
+          "critical_total": 45,
+          "avg_critical_depth_in": 0.7
+        }
+      },
+      "reproduced": true,
+      "label": "Moving band (wobble)",
+      "description": "A 4 in/hr synthetic lake-effect band pivots north and south across the corridor right after a plow pass."
+    },
+    "moving_band_obstruction": {
+      "run_id": "41628cd515",
+      "scenario_version": "5214a3b52a35",
+      "fleet": [
+        "P1:heavy_plow",
+        "B1:compact_blower"
+      ],
+      "applications": [
+        {
+          "frame_id": "SYNTHETIC-K1",
+          "segment_id": "S023",
+          "tick": 541,
+          "effect": "closure"
+        },
+        {
+          "frame_id": "SYNTHETIC-F1",
+          "segment_id": "S063",
+          "tick": 901,
+          "effect": "slowdown"
+        }
+      ],
+      "metrics": {
+        "fixed": {
+          "critical_exposure_min": 3592.5,
+          "exposure_min": 12569.8,
+          "distance_km": 276.13,
+          "travel_km": 192.64,
+          "service_km": 83.49,
+          "deadhead_pct": 69.8,
+          "services": 325,
+          "unique_segments": 103,
+          "reaccumulations": 220,
+          "median_reaccum_min": 59.8,
+          "crew_hours": 11.46,
+          "inch_km_cleared": 164.82,
+          "inch_km_per_crew_hour": 14.38,
+          "critical_over_now": 9,
+          "critical_total": 45,
+          "avg_critical_depth_in": 1.26
+        },
+        "adaptive": {
+          "critical_exposure_min": 519.2,
+          "exposure_min": 8730.7,
+          "distance_km": 277.21,
+          "travel_km": 187.78,
+          "service_km": 89.43,
+          "deadhead_pct": 67.7,
+          "services": 401,
+          "unique_segments": 103,
+          "reaccumulations": 183,
+          "median_reaccum_min": 80.3,
+          "crew_hours": 11.43,
+          "inch_km_cleared": 166.29,
+          "inch_km_per_crew_hour": 14.54,
+          "critical_over_now": 1,
+          "critical_total": 45,
+          "avg_critical_depth_in": 0.62
+        }
+      },
+      "reproduced": true,
+      "label": "Moving band + camera events",
+      "description": "Moving band plus two scheduled synthetic camera events: a stalled vehicle on Kensington Ave near ECMC and reduced visibility on Fillmore Ave."
+    }
+  }
+}
