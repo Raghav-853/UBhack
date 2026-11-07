@@ -73,8 +73,8 @@ class Network:
         self.heavy_nodes = max(nx.connected_components(W), key=len) if W else set()
         for s in self.segments.values():
             s.heavy_ok = s.width_class == "wide" and s.u in self.heavy_nodes and s.v in self.heavy_nodes
-            # Compact blowers own narrow streets plus wide segments heavy plows cannot reach.
-            s.compact_service = s.width_class == "narrow" or not s.heavy_ok
+            # Compact units may service either modeled road class (team decision, Nov 7).
+            s.compact_service = True
 
         self.landmarks = {
             k: self.to_xy(v["lon"], v["lat"]) for k, v in self.meta.get("landmarks", {}).items()

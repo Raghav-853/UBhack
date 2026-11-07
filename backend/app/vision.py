@@ -73,14 +73,20 @@ def sha1(path: Path) -> str:
 class Vision:
     def __init__(self):
         self.key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-        self.model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
+        self.model = os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash"
+        self.fallback_model = os.environ.get("GEMINI_FALLBACK_MODEL") or "gemini-3.5-flash-lite"
         self.frames = load_frames()
         self.last_error: str | None = None
+        self.last_success: str | None = None
+        self.last_model: str | None = None
         self._client = None
 
     def status(self) -> dict:
-        return {"available": bool(self.key), "mode": "live" if self.key else "fixture",
-                "model": self.model if self.key else None, "last_error": self.last_error}
+        # "configured" = key present; "verified" = at least one successful live request this session.
+        return {"configured": bool(self.key), "verified": self.last_success is not None,
+                "available": self.last_success is not None, "mode": "live" if self.key else "fixture",
+                "model": self.model if self.key else None, "fallback_model": self.fallback_model if self.key else None,
+                "last_model": self.last_model, "last_success": self.last_success, "last_error": self.last_error}
 
     def frame_path(self, frame: dict) -> Path:
         return FRAMES_DIR / media_rel(frame)
@@ -124,10 +130,12 @@ class Vision:
 
         if mode in ("auto", "live") and self.key and path.suffix.lower() in MEDIA and path.exists():
             try:
-                result = self._gemini(path)
+                result, model_used = self._gemini_with_fallback(path)
                 self.last_error = None
-                self._record(frame_id, path, result)
-                return {**base, "status": "done", "source_kind": "live_inference", "model_id": self.model,
+                self.last_success = datetime.now(timezone.utc).isoformat()
+                self.last_model = model_used
+                self._record(frame_id, path, result, model_used)
+                return {**base, "status": "done", "source_kind": "live_inference", "model_id": model_used,
                         "result": result}
             except Exception as e:
                 live_error = f"Gemini request failed ({type(e).__name__})"
@@ -154,14 +162,25 @@ class Vision:
         return {**base, "status": "failed", "source_kind": "none", "result": None,
                 "error": live_error or "No Gemini key/usable media and no recorded result for this frame"}
 
-    def _record(self, frame_id: str, path: Path, result: dict):
+    def _gemini_with_fallback(self, path: Path) -> tuple[dict, str]:
+        try:
+            return self._gemini(path, self.model), self.model
+        except Exception as first:
+            if not self.fallback_model or self.fallback_model == self.model:
+                raise
+            try:
+                return self._gemini(path, self.fallback_model), self.fallback_model
+            except Exception:
+                raise first
+
+    def _record(self, frame_id: str, path: Path, result: dict, model_id: str):
         RECORDED_DIR.mkdir(parents=True, exist_ok=True)
-        rec = {"frame_id": frame_id, "media": path.name, "media_sha1": sha1(path), "model_id": self.model,
+        rec = {"frame_id": frame_id, "media": path.name, "media_sha1": sha1(path), "model_id": model_id,
                "recorded_at": datetime.now(timezone.utc).isoformat(), "source_kind": "recorded_inference",
                "result": result}
         (RECORDED_DIR / f"{frame_id}.json").write_text(json.dumps(rec, indent=2), encoding="utf-8")
 
-    def _gemini(self, path: Path) -> dict:
+    def _gemini(self, path: Path, model: str) -> dict:
         from google import genai
         from google.genai import types
 
@@ -177,7 +196,7 @@ class Vision:
                 time.sleep(2)
                 media = self._client.files.get(name=media.name)
         resp = self._client.models.generate_content(
-            model=self.model,
+            model=model,
             contents=[media, PROMPT],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json", response_schema=CameraObservation, temperature=0),

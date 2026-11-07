@@ -93,9 +93,9 @@ function Header({ state, err }: any) {
       </div>
       <div className="badges">
         <span className="badge warn" title={state.scenario.provenance}>Synthetic storm</span>
-        {badge("Gemini", I.gemini.available, I.gemini.available ? `live ${I.gemini.model}` : "fixture (no key)")}
+        {badge("Gemini", I.gemini.verified, I.gemini.verified ? `verified ${I.gemini.last_model}` : I.gemini.configured ? (I.gemini.last_error ? `error ${I.gemini.last_error}` : "configured, not yet verified") : "no key")}
         {badge("Tiger Data", I.tiger.available, I.tiger.available ? `${I.tiger.rows} rows` : I.tiger.configured ? (I.tiger.last_error || "connecting") : "off")}
-        {badge("Voice", I.voice.available, I.voice.available ? "ElevenLabs" : "browser TTS (mock)")}
+        {badge("Voice", I.voice.verified, I.voice.verified ? "ElevenLabs verified" : I.voice.configured ? (I.voice.last_error ? `error ${I.voice.last_error}` : "ElevenLabs configured") : "browser TTS fallback")}
         {err && <span className="badge off">{err}</span>}
       </div>
     </header>
@@ -259,6 +259,7 @@ function cameraStates(state: any, frames: any[]) {
   for (const f of frames) {
     const x = an[f.frame_id];
     if (!x || x.status === "processing") { out[f.frame_id] = "processing"; continue; }
+    if (x.status !== "done" || !x.result) { out[f.frame_id] = "failed"; continue; }
     const d = state.camera?.decisions?.[`${f.frame_id}@${x.version}`];
     const kind = x.proposed_effect?.kind;
     out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
@@ -358,8 +359,16 @@ function CameraViewer({ state, frame, network, onClose }: any) {
         ? <video key={frame.media_url} src={frame.media_url} autoPlay muted loop playsInline controls />
         : <img src={frame.media_url} alt={frame.title} />}
       <div className="small muted">
-        {frame.source} · captured {frame.observed_at || "unknown"} · {frame.relation === "adjacent" ? "adjacent camera (visibility only) near" : "views"} {frame.segment_ids.map(segName).join(", ")}
+        {frame.source_url ? <a href={frame.source_url} target="_blank" rel="noreferrer">{frame.source}</a> : frame.source}
+        {frame.license_note ? ` · ${frame.license_note}` : ""}
       </div>
+      <div className="small">
+        <b>Captured:</b> {frame.observed_at || "unknown"}{frame.observed_at_precision ? ` (${frame.observed_at_precision})` : ""} · <b>Archive footage</b>, not a live feed
+      </div>
+      <div className="small muted">
+        {frame.relation === "adjacent" ? "Adjacent camera (visibility only) near" : "Mapped to"} {frame.segment_ids.map(segName).join(", ")}{frame.mapping_note ? ` — ${frame.mapping_note}` : ""}
+      </div>
+      {frame.context_note && <div className="small context">🌨 {frame.context_note}</div>}
       <AnalysisView analysis={analysis} />
       {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
       {analysis?.status === "done" && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}

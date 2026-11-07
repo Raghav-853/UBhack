@@ -1,0 +1,14 @@
+{
+  "frame_id": "ARC-MAIN-1224",
+  "media": "main-st-cold-spring-20221224.webm",
+  "media_sha1": "8693ec04678e63dd",
+  "model_id": "gemini-3.5-flash",
+  "recorded_at": "2026-11-07T22:29:06.326175+00:00",
+  "source_kind": "recorded_inference",
+  "result": {
+    "surface_class": "snow_covered",
+    "visibility_class": "poor",
+    "obstruction_detected": false,
+    "evidence_summary": "Heavy blowing snow drastically reduces visibility and completely covers the sidewalk and roadway."
+  }
+}

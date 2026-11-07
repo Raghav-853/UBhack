@@ -1,8 +1,10 @@
 # SnowTwin WNY
 
 Camera-informed snow-response simulator for Buffalo's UB South -> ECMC -> BNMC medical corridor.
-One synthetic lake-effect band, one fleet, two dispatch policies (fixed-order loop vs adaptive) run
-side by side under identical conditions, with measured results.
+One synthetic lake-effect band, one fleet (one heavy plow + one compact unit), two dispatch policies
+(fixed-order loop vs adaptive) run side by side under identical conditions, with measured results.
+Camera input is archived December 2022 Buffalo blizzard footage analyzed by Gemini; a dispatcher
+approves or rejects each proposed effect.
 
 ## Run it (Windows)
 
@@ -17,16 +19,17 @@ Optional keys go in `.env.local` (see `.env.example`). Without them:
 
 | Integration | With key | Without key |
 |---|---|---|
-| Gemini | Real image analysis of JPG/PNG frames in `data/frames` | Recorded result labeled **SYNTHETIC FIXTURE** |
+| Gemini | Automatic analysis of each camera video/image (`GEMINI_MODEL`, falls back to `GEMINI_FALLBACK_MODEL`); every live result is saved in `data/frames/recorded/` | Saved result replayed, labeled **RECORDED GEMINI RESULT** |
 | Tiger Data | Checkpoints + segment telemetry written to TimescaleDB; history endpoints work | Simulation runs in memory only |
-| ElevenLabs | Generated dispatch audio | Browser TTS, labeled mock |
+| ElevenLabs | Generated dispatch audio | Text alerts (browser TTS fallback) |
 
 ## Demo flow
 
 1. Pick **Moving band (wobble)** and press Play (4x-8x).
-2. Watch both maps: same storm, same three vehicles, different decisions. Metrics panel shows the difference.
-3. Camera panel -> **CAM-K1** -> Analyze -> Accept: Kensington Ave near ECMC closes in both worlds and units reroute.
-4. Open **Steer the snowband**, change it, and both policies restart together.
+2. Watch both maps: same storm, same two vehicles, different decisions. Metrics panel shows the difference.
+3. **Camera alerts** (top of sidebar) or a 📹 icon on the map: each archive clip has already been analyzed by Gemini.
+   Approve the Main St (Cold Spring) proposal: a visibility slowdown applies to both worlds at the same tick.
+4. Open **Steer the snowband**, change it, and both policies restart together (decisions reset per run).
 
 ## Layout
 
@@ -38,21 +41,26 @@ Optional keys go in `.env.local` (see `.env.example`). Without them:
 | `backend/app/telemetry.py` | Tiger Data schema, async writer, history queries |
 | `backend/app/main.py` | FastAPI endpoints; serves `frontend/dist` |
 | `frontend/src/` | React + MapLibre dashboard |
-| `data/corridor.geojson` | 113-segment corridor from OpenStreetMap (`scripts/build_corridor.py`) |
+| `data/corridor.geojson` | 118-segment corridor from OpenStreetMap incl. Laurel St (`scripts/build_corridor.py`, stable segment IDs) |
 | `data/scenarios/` | Scenario definitions |
-| `data/frames/` | Camera frames registry. **Replace the SVG fixtures with permitted JPG/PNG captures** |
+| `data/frames/frames.json`, `clips/` | Archived Main St / Laurel St blizzard videos (Wikimedia Commons, CC BY-SA 4.0, see `clips/ATTRIBUTION.md`) |
+| `data/frames/recorded/` | Saved genuine Gemini results (per media hash) for replay |
 
-## Adding a real camera frame
+## Adding camera media
 
-1. Save a permitted capture as `data/frames/cam-K1.jpg` (note the source and capture time).
-2. In `data/frames/frames.json`, set `"image": "cam-K1.jpg"`, `"source"`, `"observed_at"`, `"license_note"`.
-3. With `GEMINI_API_KEY` set, Analyze sends the image to Gemini and labels the result **LIVE GEMINI**.
+- Shared: put the file in `data/frames/clips/` and add an entry to `data/frames/frames.json`
+  (`frame_id`, `title`, `media`, `source`, `source_url`, `license_note`, `observed_at`, `observed_at_precision`,
+  `segment_ids`, `relation: on_segment|adjacent`, `mapping_note`).
+- Local only: dashboard -> Road cameras -> **＋ Add camera image/video** (uploads are git-ignored).
+- Gemini analyzes new media automatically; the dispatcher only approves or rejects the proposal.
 
 ## Modeling assumptions (shared by both policies)
 
 - Snowband is synthetic (not a historical replay); a segment receives the band rate when its midpoint is inside the band.
 - 10 s simulation substep. Service clears a segment to 0.2 in; work is eligible from 1.0 in; 1.5 in exposure threshold is illustrative.
-- Width class comes from OSM road class (not measured width). Heavy plows use wide roads only; compact blowers handle narrow streets.
+- Width class comes from OSM road class (not measured width; the city road dataset has no width field). Heavy plow: wide roads only. Compact unit: may service either class.
+- Bidirectional travel is an MVP simplification; one-way and turn restrictions are not modeled.
+- A vehicle already inside a newly closed segment continues to the next node, then replans.
 - Critical corridor = Main Street plus wide roads within 450 m of ECMC/BNMC (a modeled designation).
 - Adaptive policy uses the scenario's declared band motion for a 30-minute look-ahead (known-scenario planning, not a weather forecast).
 - The fixed policy is the team's comparison loop, not a reconstruction of the City of Buffalo's dispatch.

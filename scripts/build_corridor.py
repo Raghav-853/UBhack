@@ -48,6 +48,8 @@ TIER = {"primary": 1, "trunk": 1, "primary_link": 1, "secondary": 2, "secondary_
 RES_ECMC_M = 620          # residential pocket around ECMC (compact-blower territory)
 CRITICAL_HOSPITAL_M = 450
 KEEP_STUB_NEAR_LANDMARK_M = 450
+# Streets added because archived camera footage shows them: name -> (min_lat, max_lat).
+INCLUDE_STREETS = {"Laurel Street": (42.905, 42.915)}
 
 
 def xy(lon, lat):
@@ -64,6 +66,12 @@ def dist_point_seg(p, a, b):
     L2 = dx * dx + dy * dy
     t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2))
     return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def seg_key(u, v, name, coords):
+    """Endpoints + name + midpoint, so parallel carriageways between the same nodes stay distinct."""
+    mid = coords[len(coords) // 2]
+    return (frozenset((u, v)), name, round(mid[0], 4), round(mid[1], 4))
 
 
 def in_poly(p, poly):
@@ -96,6 +104,12 @@ def main():
         if not in_poly(mid, poly):
             continue
         if h in WIDE or (h in NARROW and math.dist(mid, ecmc) <= RES_ECMC_M):
+            keep.add_edge(u, v, key=k, **d)
+    # Explicitly included streets (archived camera footage locations), even outside the pockets above.
+    for u, v, k, d in U.edges(keys=True, data=True):
+        name = str(first(d.get("name", "")))
+        lat = (U.nodes[u]["y"] + U.nodes[v]["y"]) / 2
+        if name in INCLUDE_STREETS and INCLUDE_STREETS[name][0] <= lat <= INCLUDE_STREETS[name][1]:
             keep.add_edge(u, v, key=k, **d)
     for n in keep.nodes:
         keep.nodes[n].update(U.nodes[n])
@@ -162,13 +176,24 @@ def main():
         segs.append((chain_nodes[0], chain_nodes[-1], chain_coords, attrs, osm_ids))
 
     bnmc = xy(*LANDMARKS["BNMC"][::-1])
+    # Keep segment IDs stable across rebuilds: reuse the previous ID for the same endpoints + name.
+    previous = {}
+    if OUT.exists():
+        for f in json.loads(OUT.read_text(encoding="utf-8"))["features"]:
+            p = f["properties"]
+            previous[seg_key(p["u"], p["v"], p.get("name"), f["geometry"]["coordinates"])] = p["segment_id"]
+    next_id = max([int(x[1:]) for x in previous.values()] + [-1]) + 1
     features = []
-    for i, (a, b, cs, (h, name), osm_ids) in enumerate(sorted(segs, key=lambda s: (-s[2][0][1], s[2][0][0]))):
+    for a, b, cs, (h, name), osm_ids in sorted(segs, key=lambda s: (-s[2][0][1], s[2][0][0])):
         pts = [xy(*c) for c in cs]
         length = sum(math.dist(p, q) for p, q in zip(pts, pts[1:]))
         if a == b or length < 15:
             continue
         mid = pts[len(pts) // 2]
+        sid = previous.get(seg_key(str(a), str(b), None if name == "nan" else name, cs))
+        if sid is None:
+            sid = f"S{next_id:03d}"
+            next_id += 1
         width_class = "wide" if h in WIDE else "narrow"
         tier = TIER.get(h, 3)
         near_hosp = min(math.dist(mid, ecmc), math.dist(mid, bnmc)) <= CRITICAL_HOSPITAL_M
@@ -177,7 +202,7 @@ def main():
             "type": "Feature",
             "geometry": {"type": "LineString", "coordinates": [[round(x, 6), round(y, 6)] for x, y in cs]},
             "properties": {
-                "segment_id": f"S{i:03d}",
+                "segment_id": sid,
                 "u": str(a), "v": str(b),
                 "name": None if name == "nan" else name,
                 "highway": h,

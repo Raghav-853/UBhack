@@ -10,14 +10,17 @@ import urllib.request
 class Voice:
     def __init__(self):
         self.key = os.environ.get("ELEVENLABS_API_KEY")
-        self.voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")
-        self.model = os.environ.get("ELEVENLABS_MODEL", "eleven_flash_v2_5")
+        self.voice_id = os.environ.get("ELEVENLABS_VOICE_ID") or "JBFqnCBsd6RMkjVDRZzb"
+        self.model = os.environ.get("ELEVENLABS_MODEL") or "eleven_flash_v2_5"
         self.cache: dict[str, bytes] = {}
         self.last_error: str | None = None
+        self.last_success: str | None = None
 
     def status(self) -> dict:
-        return {"available": bool(self.key), "mode": "elevenlabs" if self.key else "browser_tts_mock",
-                "last_error": self.last_error}
+        return {"configured": bool(self.key), "verified": self.last_success is not None,
+                "available": self.last_success is not None,
+                "mode": "elevenlabs" if self.key else "browser_tts_fallback",
+                "last_success": self.last_success, "last_error": self.last_error}
 
     def synthesize(self, alert_id: str, text: str) -> bytes | None:
         if not self.key:
@@ -35,6 +38,8 @@ class Voice:
                 audio = r.read()
             self.cache[alert_id] = audio
             self.last_error = None
+            from datetime import datetime, timezone
+            self.last_success = datetime.now(timezone.utc).isoformat()
             return audio
         except Exception as e:
             self.last_error = type(e).__name__

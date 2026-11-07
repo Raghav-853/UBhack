@@ -1,0 +1,14 @@
+{
+  "frame_id": "ARC-LAUREL-1224",
+  "media": "laurel-st-20221224.webm",
+  "media_sha1": "669c168723c3c2dc",
+  "model_id": "gemini-3.5-flash",
+  "recorded_at": "2026-11-07T22:30:12.799105+00:00",
+  "source_kind": "recorded_inference",
+  "result": {
+    "surface_class": "snow_covered",
+    "visibility_class": "reduced",
+    "obstruction_detected": false,
+    "evidence_summary": "The street and surrounding area are completely covered in snow, with blowing snow reducing visibility down the road."
+  }
+}

@@ -178,11 +178,18 @@ class DecideIn(BaseModel):
 
 @app.post("/api/proposals/decide")
 def decide(body: DecideIn):
+    with engine.lock:
+        return _decide_locked(body)
+
+
+def _decide_locked(body: DecideIn):
     if body.run_id != engine.run_id:
         raise HTTPException(409, "Run is no longer active")
     a = analyses.get(body.frame_id)
     if not a or a.get("status") != "done" or a.get("version") != body.version:
         raise HTTPException(409, "No current analysis for this camera")
+    if vision.frames.get(body.frame_id, {}).get("version", 0) != body.version:
+        raise HTTPException(409, "Camera media changed since this analysis; wait for re-analysis")
     eff = a.get("proposed_effect") or {"kind": "none"}
     if eff["kind"] == "none":
         raise HTTPException(409, "Nothing to approve for this camera")
@@ -246,10 +253,16 @@ def control(body: ControlIn):
 
 @app.get("/api/frames")
 def frames():
-    out = []
+    out, used = [], {}
     for f in vision.public_frames():
         seg = engine.net.segments.get(f["segment_ids"][0]) if f.get("segment_ids") else None
-        f["lonlat"] = f.get("lonlat") or (engine.net.to_ll(seg.mid) if seg else None)
+        ll = f.get("lonlat") or (engine.net.to_ll(seg.mid) if seg else None)
+        if ll:
+            # Display-only offset so cameras mapped to the same segment don't hide each other.
+            k = used.get(tuple(ll), 0)
+            used[tuple(ll)] = k + 1
+            ll = [round(ll[0] + 0.0006 * k, 6), ll[1]]
+        f["lonlat"] = ll
         out.append(f)
     return out
 

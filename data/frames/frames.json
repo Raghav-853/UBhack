@@ -1,29 +1,50 @@
 {
-  "note": "Replace image files with permitted camera captures (JPG/PNG) and fill observed_at, source and license. SVG drawings are synthetic fixtures and are never sent to Gemini.",
+  "note": "Primary demo imagery: archived December 2022 Buffalo blizzard videos from Wikimedia Commons (CC BY-SA 4.0). Exact camera positions are not published; segment mappings are approximate within the named street section.",
   "frames": [
     {
-      "frame_id": "CAM-K1", "camera_id": "CAM-K1", "title": "Kensington Ave near ECMC",
-      "image": "cam-K1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
-      "observed_at": null, "segment_ids": ["S023", "S019"],
-      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
-        "surface_class": "snow_covered", "visibility_class": "reduced", "obstruction": "yes",
-        "evidence_summary": "Illustrative fixture: a stopped vehicle blocks the right travel lane."}}
+      "frame_id": "ARC-MAIN-1224",
+      "camera_id": "commons:Main_Street_in_Cold_Spring_20221224_01",
+      "title": "Main St, Cold Spring (Dec 24, 2022)",
+      "media": "clips/main-st-cold-spring-20221224.webm",
+      "source": "Wikimedia Commons archive video (Andre Carrotflower)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Main_Street_in_Cold_Spring,_Buffalo,_New_York_during_December_2022_blizzard_-_20221224_-_01.webm",
+      "license_note": "CC BY-SA 4.0, Andre Carrotflower",
+      "observed_at": "2022-12-24T11:30:00-05:00",
+      "observed_at_precision": "approximate (file description: about 11:30 AM)",
+      "segment_ids": ["S087", "S088"],
+      "relation": "on_segment",
+      "mapping_note": "Main Street between E Ferry St and E Delavan Ave (Cold Spring); exact viewpoint unknown",
+      "context_note": "Buffalo airport daily snowfall Dec 24, 2022: 17.9 in for the calendar day (NWS climate report). Regional context, not road depth."
     },
     {
-      "frame_id": "CAM-M1", "camera_id": "CAM-M1", "title": "Main St at Kensington Ave",
-      "image": "cam-M1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
-      "observed_at": null, "segment_ids": ["S045", "S044"],
-      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
-        "surface_class": "snow_covered", "visibility_class": "good", "obstruction": "no",
-        "evidence_summary": "Illustrative fixture: snow-covered lanes, open, good visibility."}}
+      "frame_id": "ARC-LAUREL-1223",
+      "camera_id": "commons:Laurel_Street_20221223_02",
+      "title": "Laurel St (Dec 23, 2022, evening)",
+      "media": "clips/laurel-st-20221223.webm",
+      "source": "Wikimedia Commons archive video (Andre Carrotflower)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Laurel_Street_during_December_2022_Buffalo,_New_York_blizzard_-_20221223_-_02.webm",
+      "license_note": "CC BY-SA 4.0, Andre Carrotflower",
+      "observed_at": "2022-12-23",
+      "observed_at_precision": "date only (evening, exact time unknown)",
+      "segment_ids": ["S117", "S118"],
+      "relation": "on_segment",
+      "mapping_note": "Laurel Street, filmed from a second-floor balcony; exact house unknown",
+      "context_note": "First day of the Dec 23-25, 2022 blizzard. Regional context, not road depth."
     },
     {
-      "frame_id": "CAM-F1", "camera_id": "CAM-F1", "title": "Fillmore Ave",
-      "image": "cam-F1.svg", "source": "synthetic_fixture", "license_note": "Team-made illustration",
-      "observed_at": null, "segment_ids": ["S063", "S065"],
-      "recorded_result": {"source_kind": "synthetic_fixture", "result": {
-        "surface_class": "snow_covered", "visibility_class": "poor", "obstruction": "no",
-        "evidence_summary": "Illustrative fixture: heavy falling snow sharply limits visibility."}}
+      "frame_id": "ARC-LAUREL-1224",
+      "camera_id": "commons:Laurel_Street_20221224_02",
+      "title": "Laurel St (Dec 24, 2022, morning)",
+      "media": "clips/laurel-st-20221224.webm",
+      "source": "Wikimedia Commons archive video (Andre Carrotflower)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Laurel_Street_during_December_2022_Buffalo,_New_York_blizzard_-_20221224_-_02.webm",
+      "license_note": "CC BY-SA 4.0, Andre Carrotflower",
+      "observed_at": "2022-12-24T11:30:00-05:00",
+      "observed_at_precision": "approximate (file description: about 11:30 AM)",
+      "segment_ids": ["S117", "S118"],
+      "relation": "on_segment",
+      "mapping_note": "Laurel Street; exact viewpoint unknown",
+      "context_note": "Buffalo airport daily snowfall Dec 24, 2022: 17.9 in for the calendar day (NWS climate report). Regional context, not road depth."
     }
   ]
 }

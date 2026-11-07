@@ -397,7 +397,7 @@ class Engine:
                 if self.t % SAMPLE_EVERY_S < 1e-6:
                     self._sample()
                     self._check_alerts()
-                if self.t % CHECKPOINT_EVERY_S < 1e-6:
+                if self.t % CHECKPOINT_EVERY_S < 1e-6 or self.t >= self.duration:
                     self._emit("checkpoint", {"run_id": self.run_id, "tick": self.tick})
 
     def run_to_end(self):
@@ -474,7 +474,7 @@ class Engine:
                 self.add_alert("visibility", f"Dispatch, SnowTwin. {effect['visibility'].capitalize()} visibility on "
                                              f"{label}. Applying a conservative speed penalty.", obs["observation_id"])
             obs.setdefault("applications", []).append(
-                {"observation_id": obs["observation_id"], "segment_id": sid, "tick": self.tick,
+                {"observation_id": obs["observation_id"], "segment_id": sid, "tick": self.tick + 1,
                  "sim_time_s": self.t, "effect": effect})
             self._emit("observation_applied", {"observation": obs, "segment_id": sid})
         for w in self.worlds.values():

@@ -5,17 +5,48 @@
   "duration_s": 21600,
   "initial_depth_in": 0.4,
   "background_rate_in_hr": 0.0,
-  "band": {"rate_in_hr": 4.0, "heading_deg": 75, "width_m": 1800, "length_m": 30000,
-           "offset_m": -1800, "drift_mps": 0.0, "wobble_amp_m": 2400, "wobble_period_s": 9000},
+  "band": {
+    "rate_in_hr": 4.0,
+    "heading_deg": 75,
+    "width_m": 1800,
+    "length_m": 30000,
+    "offset_m": -1800,
+    "drift_mps": 0.0,
+    "wobble_amp_m": 2400,
+    "wobble_period_s": 9000
+  },
   "fleet": [
-    {"id": "P1", "type": "heavy_plow", "start": "UB South Campus"},
-    {"id": "P2", "type": "heavy_plow", "start": "BNMC"},
-    {"id": "B1", "type": "compact_blower", "start": "ECMC"}
+    {
+      "id": "P1",
+      "type": "heavy_plow",
+      "start": "BNMC"
+    },
+    {
+      "id": "B1",
+      "type": "compact_blower",
+      "start": "ECMC"
+    }
   ],
   "scheduled_observations": [
-    {"at_s": 5400, "frame_id": "CAM-K1", "segment_id": "S023",
-     "result": {"surface_class": "snow_covered", "visibility_class": "reduced", "obstruction_detected": true}},
-    {"at_s": 9000, "frame_id": "CAM-F1", "segment_id": "S063",
-     "result": {"surface_class": "snow_covered", "visibility_class": "poor", "obstruction_detected": false}}
+    {
+      "at_s": 5400,
+      "frame_id": "SYNTHETIC-K1",
+      "segment_id": "S023",
+      "result": {
+        "surface_class": "snow_covered",
+        "visibility_class": "reduced",
+        "obstruction_detected": true
+      }
+    },
+    {
+      "at_s": 9000,
+      "frame_id": "SYNTHETIC-F1",
+      "segment_id": "S063",
+      "result": {
+        "surface_class": "snow_covered",
+        "visibility_class": "poor",
+        "obstruction_detected": false
+      }
+    }
   ]
 }
