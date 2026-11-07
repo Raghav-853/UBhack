@@ -5,7 +5,9 @@
 **Prepared:** November 7, 2026  
 **Primary target:** Radial Atoms  
 **Secondary targets:** General Hack and AI/ML; genuine completed sponsor integrations  
-**Status:** Execution plan. The repository currently contains the first-iteration specification; the application, integrations, and performance results have not been built or verified.
+**Status:** Partial implementation; source recovery verified at commit `e4a2533` on November 7, approximately 5:16 PM America/New_York. The simulation is restored, all backend modules pass Python syntax parsing, and the scanned application source has no merge-conflict markers. Runtime/build readiness, sponsor operations, and performance results remain unverified. The scenarios still contain three vehicles, compact equipment is still excluded from most wide-road service, and the registry still contains synthetic media; these remain implementation gaps against the confirmed scope below. Use [Implementation audit and remaining work](IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md) for current evidence, verification history, and the active backlog.
+
+**Confirmed delivery baseline:** draft submission by **11:00 PM tonight**; exactly one heavy plow and one compact unit per policy; simplified bidirectional routing; the three archived Main/Laurel Street videos as primary imagery; Gemini, Tiger Data, and ElevenLabs as selected sponsor targets. Compact equipment may service either modeled road class; heavy equipment stays on wide roads. 511NY is secondary and time permitting. Historical snowfall is context, not measured road depth.
 
 > **Build a camera-informed snow-response simulator that shows where roads will accumulate snow again, assigns compatible vehicles, and measures the difference against a fixed-route comparison policy.**
 
@@ -28,7 +30,7 @@ The public-facing distinction is service history versus scenario-based planning.
 | 3 | Gemini API | Real image input, validated structured output, visible downstream consequence | An image caption alone is insufficient for our internal standard |
 | 4 | Tiger Data | Actual time-series writes and a history/comparison query used by the application | Finish after the in-memory loop works |
 | 5 | UI/UX | Understandable map, explanations, units, controls, and degraded states | Polish the existing workflow |
-| 6 | ElevenLabs | Actual generated dispatch audio tied to a deduplicated event | Optional after the complete demonstration works |
+| 6 | ElevenLabs | Actual generated dispatch audio tied to a deduplicated event | Selected sponsor target; integrate after the physical/image loop, with operation-level evidence |
 
 The official Radial Atoms prompt permits hardware, sensors, data, or simulation; hardware is optional, and Buffalo/WNY benefit may receive extra consideration. It lists one $1,000 winner. General Hack lists $1,500, $1,000, and $500 places. The site requires explicit Devpost opt-in and a usage explanation for each intended MLH sponsor category. These facts support the priorities above; the priorities are our strategy, not official judging weights. [Official event](https://ubhacking.cse.buffalo.edu/)
 
@@ -71,14 +73,16 @@ Use a 15-minute investigation limit for any individual provider-access problem. 
 
 1. One connected Buffalo medical-corridor road graph, roughly 60–120 modeled service segments, with source attribution and documented assumptions.
 2. One synthetic moving snowband with configurable rate, heading, width, and speed.
-3. Two simulated vehicles: one heavy plow and one compact blower, with different feasible work assignments and explicit travel/service times.
-4. A complete loop: accumulation → observation/event → dispatch decision → legal vehicle movement → service → reduced snow → updated decision.
+3. Exactly two simulated vehicles in each policy world: one heavy plow and one compact unit, with explicit travel/service times. Heavy equipment is restricted to modeled wide roads; compact equipment may service either class when reachable and useful. Use identical fleets and starts across policies.
+4. A complete loop: accumulation → observation/event → dispatch decision → feasible movement in the simplified bidirectional graph → service → reduced snow → updated decision.
 5. A feasible fixed-order policy and an adaptive policy running under identical scenario conditions.
 6. A dashboard showing road estimates, both policies' results, vehicles, reasons for reassignment, and measurement units.
-7. At least one genuine Gemini analysis of archived Buffalo imagery with a traceable result and a visible, bounded role in the loop. Use the same registered archival inputs for development and the repeatable demo. Until available, label AI integration incomplete.
+7. Register the three archived Buffalo videos in Section 8 as the primary development/demo inputs. Analyze them with Gemini, retaining genuine saved results and provenance for replay. At least one supported result must have a visible, bounded role in the loop; other clips may truthfully produce no event or `unknown`. Until available, label AI integration incomplete.
 8. Repeatable reset, a saved scenario definition, benchmark output, and a recorded demonstration.
 
 ### Add after the core gate passes
+
+Tiger Data and ElevenLabs are selected sponsor targets, sequenced after the working core. A configured key is not completion: retain real write/read or generation/playback evidence. If either remains incomplete, the submission must say so. 511NY and extra visual polish remain optional.
 
 | Addition | Acceptance evidence | Cut condition |
 | :--- | :--- | :--- |
@@ -111,9 +115,9 @@ Use a planned scenario for the measured comparison. Free exploration is a separa
 
 ## 5. Architecture and repository ownership
 
-**Proposed stack:** React + TypeScript for the dashboard; FastAPI + NetworkX for simulation/API; preprocessed OSM geometry; Gemini behind the backend; Tiger Data for time-series persistence when connected; ElevenLabs for optional audio. Keep the first iteration's Python/React split.
+**Implementation stack:** React + TypeScript + MapLibre for the dashboard; FastAPI + NetworkX for simulation/API; preprocessed OSM geometry; Gemini behind the backend; Tiger Data for time-series persistence; ElevenLabs for event-linked audio. Keep the Python/React split and verify actual provider operations before claiming completed integrations.
 
-Use Deck.gl for road, vehicle, and band layers. MapLibre is an optional basemap companion; verify the selected package versions together and lock them after the first successful render. Deck.gl also supports standalone rendering, so tiles must not be required to understand the road geometry. If integration stalls, use a simple projected SVG view of the same data. These are proposed dependencies, not installed or tested components. [Deck.gl integration](https://deck.gl/docs/developer-guide/base-maps/using-with-maplibre), [standalone support](https://deck.gl/)
+Keep the implemented MapLibre road, vehicle, and band layers; installing Deck.gl is not a requirement. Verify the pinned packages and local-geometry fallback on the judging laptop. If map integration stalls, a projected SVG view of the same geometry is acceptable. Tiles must not be required to understand the road network.
 
 ```text
 Scenario + road graph + timestamped observation events
@@ -129,18 +133,18 @@ Scenario + road graph + timestamped observation events
                            Tiger Data history
 
 Gemini -> validated observation queue -> both policy worlds
-Domain event -> optional ElevenLabs adapter -> audio + text
+Domain event -> ElevenLabs adapter -> audio + text
 ```
 
 ### Proposed files
 
-This layout is a target to create during implementation; these files do not currently exist.
+This is the original responsibility map, not a current file inventory. Several modules now exist; API/schema code may remain in `main.py`, and existing MapLibre components satisfy rendering responsibilities. Do not create separate files merely to match this table. See the audit for current evidence and missing artifacts.
 
 | Location | Owner | Responsibility |
 | :--- | :--- | :--- |
 | `backend/app/main.py`, `api.py`, `schemas.py` | Integration lead | FastAPI application, contracts, atomic snapshots |
 | `backend/app/simulation.py`, `routing.py` | Simulation owner | Clock, road state, vehicle movement, both policies |
-| `backend/app/vision.py`, `telemetry.py`, `voice.py` | Data/AI owner | Validated adapters, persistence, optional audio |
+| `backend/app/vision.py`, `telemetry.py`, `voice.py` | Data/AI owner | Validated adapters, persistence, event-linked sponsor audio |
 | `backend/tests/` | Simulation owner with reviewer | Physical invariants, policy fairness, replay, API validation |
 | `backend/requirements.txt` | Integration lead | Tested, pinned Python dependencies |
 | `frontend/src/` | UI owner | Map, controls, comparisons, event explanations |
@@ -162,7 +166,7 @@ Do not introduce a separate forecasting service, broker, cache cluster, or orche
 - `scenario_version`: stable identifier/hash of graph, parameters, weather script, observation schedule, and policy configuration.
 - `tick`: integer simulation step; `sim_time_s`: elapsed simulated seconds.
 - `observed_at`: original frame capture time where known; `received_at`: ingestion time. Never fabricate a capture timestamp.
-- `segment_id`: physical modeled service segment; `arc_id`: directed travel connection referencing a segment. Preserve OSM IDs and parallel-edge keys where available.
+- `segment_id`: physical modeled service segment. In the simplified bidirectional graph, identify a travel leg by segment ID plus from/to nodes; a separate directed `arc_id` is not required. Preserve OSM provenance and distinct parallel segments where available.
 - `policy`: exactly `fixed` or `adaptive`; provider state and fixture provenance are explicit fields.
 
 ### API v1
@@ -187,7 +191,7 @@ The shared state fixture must contain:
 | Scenario | Band geometry/rate/motion, parameter assumptions, input provenance |
 | `policies.fixed`, `policies.adaptive` | Segments, vehicles, metrics, current assignment explanations |
 | Segment state | `segment_id`, `estimated_snow_depth_in`, `last_service_sim_s`, `obstruction_state` |
-| Vehicle state | `vehicle_id`, type, current arc/progress, `status`, target segment, route arc IDs |
+| Vehicle state | `vehicle_id`, type, current segment/progress, `status`, target segment, route legs referencing segment/from/to IDs |
 | Observations/events | IDs, source kind, capture/ingestion/application times, result or failure state |
 | Integrations | Actual availability and whether displayed data is live, recorded, or synthetic |
 
@@ -203,6 +207,8 @@ Scenario edits commit on control release, not every pointer movement. Start a ne
 - A segment represents one **lane-equivalent service area**. A completed modeled pass clears that service area, not necessarily every real lane or the entire street.
 - Directed travel arcs can reference the same physical segment. Store accumulation and metrics once per segment; do not clear or count it twice merely because the graph has reverse arcs.
 - Road width and equipment compatibility are scenario classifications unless supported by documented data. Missing OSM width is not a measured 28-foot width.
+- Bidirectional travel is an accepted MVP simplification; real one-way and turn restrictions are not modeled. Feasibility means connectivity, equipment access, and accepted closures within this model, not real-world legal routing.
+- The [city Highways and Roadways schema](https://data.buffalony.gov/api/views/dbwm-jgtt.json), inspected November 7, contains road geometry/classification/routing fields but no measured width field. Its centerline length is not street width. Keep a documented road-class proxy or explicit scenario override for the selected streets; a citywide replacement graph or clearance-calibration project is deferred.
 - The snowband is a synthetic scenario input. Warning polygons do not automatically provide calibrated segment-level snowfall rates.
 - Snow density, salt, drifting, pavement temperature, and full vehicle dynamics are outside the MVP.
 
@@ -223,7 +229,7 @@ For the smallest complete service rule, apply removal at completion of a compati
 
 ### Vehicle movement
 
-Use `idle -> traveling -> servicing -> idle` with optional `blocked`. Advance along legal connected arcs using length and configured speed. Transit consumes time and distance; work consumes time and produces the service event. Reserve the current target to prevent both units selecting it at once.
+Use `idle -> traveling -> servicing -> idle` with optional `blocked`. Advance along connected, compatible, open travel legs in the bidirectional model using length and configured speed. Transit consumes time and distance; work consumes time and produces the service event. Reserve the current target to prevent both units selecting it at once.
 
 Check compatibility on the complete access path as well as the target. A heavy plow cannot reach an eligible arterial by passing through a forbidden narrow link. If no feasible work exists, remain idle with an explanation. Replan at service completion or a valid new event; do not teleport an in-transit vehicle. A newly blocked arc ahead can cause a detour at the next reachable node; an obstacle on the current arc requires a defined stop behavior.
 
@@ -231,7 +237,7 @@ Both policies use the same service-eligibility floor: `estimated_depth_in >= min
 
 ### Fixed comparison policy
 
-Use a documented priority-ordered feasible service loop per vehicle. Select its next eligible target in that order, using the same legal shortest-path travel and obstruction handling as the adaptive policy. Allow closure detours. This is the team's comparison policy, **not a reconstruction of Buffalo's dispatch software**.
+Use a documented priority-ordered feasible service loop per vehicle. Select its next eligible target in that order, using the same model-feasible shortest-path travel and obstruction handling as the adaptive policy. Allow closure detours. This is the team's comparison policy, **not a reconstruction of Buffalo's dispatch software**.
 
 ### Adaptive policy
 
@@ -265,7 +271,7 @@ evidence_summary, model_id, received_at
 
 An image classification does not supply calibrated inches of snow. Keep depth in the physical model. Treat apparent disagreement between image and model as a discrepancy flag. Provider confidence, if included, is self-reported and is not a validated accuracy score.
 
-**Required AI proof:** an identifiable image produces a validated observation; an operator applies a supported candidate event through the acceptance endpoint; a bounded physical/planning consequence becomes visible. Select one path at the early input-feasibility gate: (a) an observed obstacle supports a simulated closure and legal detour/reassignment, or (b) observed reduced visibility applies a configured conservative speed penalty to the mapped arcs, updating travel time and assignment costs. The penalty is a scenario assumption, not a measured speed estimate. Apply the same accepted event to both policy worlds at the same simulated tick. The fixed policy still handles the changed constraints while preserving its work order.
+**Required AI proof:** identifiable archived media produces a validated observation; an operator applies a supported candidate event through the acceptance endpoint; a bounded physical/planning consequence becomes visible. Select one path at the early input-feasibility gate: (a) an observed obstacle supports a simulated closure and model-feasible detour/reassignment, or (b) observed reduced visibility applies a configured conservative speed penalty to the mapped segments, updating travel time and assignment costs. The penalty is a scenario assumption, not a measured speed estimate. Apply the same accepted event to both policy worlds at the same simulated tick. The fixed policy still handles the changed constraints while preserving its work order.
 
 A correct result of no obstruction or good visibility remains valid and need not change the route. If the available genuine result supports no consequential event, revise the demonstration input or reduce the AI claim; never alter the model output to force the planned story.
 
@@ -315,7 +321,7 @@ Snowfall over an interval and snow depth at an observation time are different me
 1. Create a small frame set with source IDs, offsets, capture-time precision, and confirmed visible segments. Include independent dry/wet examples if available; snow-only footage cannot establish performance across all classes.
 2. Have a teammate label surface class, visibility class, and visible obstacles before seeing Gemini output. Agree a short labeling guide, allow `unknown`, and record disagreements. Poor visibility or a blocked camera view is not automatically a blocked road; visible parked/buried cars do not alone prove impassability.
 3. Keep a held-out subset out of prompt tuning; prefer holding out an entire clip/location where feasible. Report the number of frames and distinct clips/locations because adjacent frames are correlated. Keep weather totals out of image-only evaluation prompts to avoid revealing the expected class.
-4. Compare predictions with independent labels: show per-class counts, a small confusion matrix, unknown/abstention counts, and representative errors. A tiny sample is a demo sanity check, not a general accuracy claim. Keep weather station measurements alongside as context, with coordinates, time offsets, and camera-to-station distance once camera location is established; do not use them as image-class labels.
+4. Compare predictions with independent labels: record per-class example counts, unknown/abstention counts, and representative errors. A small confusion matrix is optional when the sample supports it. A tiny sample is a demo sanity check, not a general accuracy claim. Keep weather station measurements alongside as context, with coordinates, time offsets, and camera-to-station distance once camera location is established; do not use them as image-class labels.
 5. Numerical road-depth validation remains deferred until co-located, time-matched road-depth measurements or a calibrated measurement method exist. Physics/unit tests validate accumulation arithmetic; they do not establish that a historical street had the simulated depth. Preserve one frozen scenario and the same accepted observation schedule for both policies.
 
 ## 9. Tiger Data and the evidence pipeline
@@ -345,7 +351,7 @@ Freeze a small scenario suite before tuning for the demonstration:
 | Clear weather | Check that dispatch does not invent snow or unnecessary work |
 | Stationary band | Establish behavior when geographic demand stays stable |
 | Moving band | Test whether adaptive reassignment helps under shifting demand |
-| Moving band plus obstruction, if time permits | Show observation-to-route causality and legal detours |
+| Moving band plus obstruction, if time permits | Show observation-to-route causality and feasible detours within the bidirectional model |
 
 For every pair, use the same graph, initial snow, fleet types/count/starts, rates, band motion, observation schedule, speed/work model, thresholds, and duration. Clone initial state into independent policy worlds. One world's service must not clear the other's snow.
 
@@ -381,18 +387,18 @@ Check in every 60–90 minutes with three facts: what works, what blocks integra
 
 ## 12. Build order and acceptance gates
 
-These are cumulative hours from H0, not a promise of available time. Every row must fit before the absolute feature freeze. Start a visible vertical slice immediately rather than spending six hours preparing all data sources first.
+The active remaining-work sequence and tonight's checkpoints are in [the implementation audit](IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md#7-work-order-and-ownership). Save and reopen a valid draft by 10:00 PM internally, protecting the user-confirmed 11:00 PM draft deadline. The H0 table below is the original sequencing estimate, not a fresh schedule or proof that a row is complete. Every row must fit before the absolute feature freeze.
 
 | Window | Deliverable / owner | Dependencies | Pass condition |
 | :--- | :--- | :--- | :--- |
 | H0–1 | Contract, corridor fixture, runnable shells, archival input feasibility / lead + owners | Kickoff decisions | UI reads the API example state; health works; permitted Buffalo frame, provenance, mapping, and honest downstream role identified; no live-feed dependency |
 | H1–3 | First physical loop / simulation + UI | Network and schemas | A band increases depth, one unit travels, one completed pass reduces local depth on screen |
 | H3–5 | Paired policy worlds / simulation + UI | Working loop | Same scenario initializes both; metrics differ only through policy behavior |
-| H5–8 | Adaptive rules and legal movement / simulation | Feasible fixed loop | Heavy/compact constraints hold; moving-band scenario completes with explanations |
-| H8–11 | Genuine archival observation path / data + UI | Stable events and feasible mapped sample | One real archived-image result is validated; accepted event causes a traceable legal route or travel-time change; small independently labeled check recorded; weather evidence is context |
+| H5–8 | Adaptive rules and model-feasible movement / simulation | Feasible fixed loop | Heavy/compact constraints hold; moving-band scenario completes with explanations |
+| H8–11 | Genuine archival observation path / data + UI | Stable events and feasible mapped sample | One real archived-media result is validated; accepted event causes a traceable route or travel-time change; small independently labeled check recorded; weather evidence is context |
 | H11–14 | Persistence and benchmark report / data + evidence | Stable runs | Actual insert/read when connected; frozen scenario suite produces saved comparison results |
 | H14–16 | Usability and judging-laptop run / UI + lead | Core acceptance gates | A teammate starts it from README; reset, pause, labels, and fallbacks work |
-| H16–18 | Optional voice, recording, rehearsal / presenter + owners | Submission draft and core evidence complete | Complete recorded demo and timed pitch; optional feature cannot break baseline |
+| H16–18 | Selected ElevenLabs proof, recording, rehearsal / presenter + owners | Working core and submission draft preparation | One genuine event-linked audio playback; complete recorded demo and timed pitch; failures remain explicitly reported |
 | Spare time before freeze only | Optional 511NY live inspection / data + UI | Core gates, benchmark evidence, backup video, and submission preparation complete | Authorized current-frame retrieval and failure state; separate live/archive labels; stop after 15 minutes if access fails |
 | Remaining time | Fix defects and finalize submission / all | Feature freeze | Final package submitted and re-opened for verification |
 
@@ -480,7 +486,7 @@ A defensible next step is calibration with observed road conditions and municipa
 
 1. **Problem:** narrow moving snowbands change where service is needed; service history alone is not a future-state estimate.
 2. **What we built:** a bounded Buffalo corridor simulator with camera-informed events and compatible fleet assignment.
-3. **How it works:** explicit accumulation/removal, legal movement, fixed/adaptive policies, actual provider roles.
+3. **How it works:** explicit accumulation/removal, feasible movement in a simplified bidirectional graph, fixed/adaptive policies, actual provider roles.
 4. **Evidence:** recorded demonstration, reproducible scenarios, real measured comparisons, and important assumptions.
 5. **What remains:** validated snowfall estimation, calibrated road-state models, and operational integration.
 
