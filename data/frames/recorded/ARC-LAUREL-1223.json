@@ -3,12 +3,12 @@
   "media": "laurel-st-20221223.webm",
   "media_sha1": "9eafa0d7cde41c61",
   "model_id": "gemini-3.5-flash",
-  "recorded_at": "2026-11-07T22:29:07.088234+00:00",
+  "recorded_at": "2026-11-07T22:37:02.904024+00:00",
   "source_kind": "recorded_inference",
   "result": {
     "surface_class": "snow_covered",
     "visibility_class": "poor",
     "obstruction_detected": false,
-    "evidence_summary": "Heavy blowing snow completely covers the ground and severely restricts visibility."
+    "evidence_summary": "Heavy snow and dense fog severely restrict visibility while ground surfaces and parked cars are completely covered in snow."
   }
 }

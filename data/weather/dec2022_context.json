@@ -1,0 +1,20 @@
+{
+  "note": "Historical context for the archived Dec 2022 clips. Snowfall (new snow over a calendar day) and snow depth (on the ground at a report time) are different measurements; none of these is road-surface depth at the camera, and none is fed to the model or the simulation.",
+  "rows": [
+    {"date": "2022-12-23", "kind": "daily_snowfall", "station": "Buffalo airport (BUF)", "value_in": 22.3,
+     "when": "calendar day", "use": "Historical snowfall context; not road depth or snow accumulated by an earlier frame time",
+     "source": "NWS climate report (CLIBUF) archived by Iowa State", "url": "https://mesonet2.agron.iastate.edu/wx/afos/p.php?e=202212240652&pil=CLIBUF"},
+    {"date": "2022-12-24", "kind": "daily_snowfall", "station": "Buffalo airport (BUF)", "value_in": 17.9,
+     "when": "calendar day (includes snow after the ~11:30 AM clips)", "use": "Historical context",
+     "source": "NWS climate report (CLIBUF) archived by Iowa State", "url": "https://mesonet2.agron.iastate.edu/wx/afos/p.php?e=202212250623&pil=CLIBUF"},
+    {"date": "2022-12-24", "kind": "snow_depth", "station": "Kenmore 0.3 ESE (NY-ER-59)", "value_in": 18,
+     "when": "2022-12-24 13:00 UTC (8:00 AM EST)", "lat": 42.96316, "lon": -78.86690, "use": "Nearby point observation; unofficial/provisional",
+     "source": "NOAA NOHRSC observation table", "url": "https://www.nohrsc.noaa.gov/nsa/discussions_text/Southern_Great_Lakes/snowdepth/202212/snowdepth_2022122506_e.txt"},
+    {"date": "2022-12-24", "kind": "snow_depth", "station": "Snyder 0.6 SW (NY-ER-203)", "value_in": 25,
+     "when": "2022-12-24 13:00 UTC (8:00 AM EST)", "lat": 42.95979, "lon": -78.79337, "use": "Nearby point observation; unofficial/provisional",
+     "source": "NOAA NOHRSC observation table", "url": "https://www.nohrsc.noaa.gov/nsa/discussions_text/Southern_Great_Lakes/snowdepth/202212/snowdepth_2022122506_e.txt"},
+    {"date": "2022-12-24", "kind": "snow_depth", "station": "Cheektowaga 2.4 NW (NY-ER-122)", "value_in": 18,
+     "when": "2022-12-24 12:00 UTC (7:00 AM EST)", "lat": 42.93457, "lon": -78.78295, "use": "Nearby point observation; unofficial/provisional",
+     "source": "NOAA NOHRSC observation table", "url": "https://www.nohrsc.noaa.gov/nsa/discussions_text/Southern_Great_Lakes/snowdepth/202212/snowdepth_2022122506_e.txt"}
+  ]
+}

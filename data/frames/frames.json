@@ -11,10 +11,12 @@
       "license_note": "CC BY-SA 4.0, Andre Carrotflower",
       "observed_at": "2022-12-24T11:30:00-05:00",
       "observed_at_precision": "approximate (file description: about 11:30 AM)",
-      "segment_ids": ["S087", "S088"],
+      "segment_ids": [
+        "S087",
+        "S088"
+      ],
       "relation": "on_segment",
-      "mapping_note": "Main Street between E Ferry St and E Delavan Ave (Cold Spring); exact viewpoint unknown",
-      "context_note": "Buffalo airport daily snowfall Dec 24, 2022: 17.9 in for the calendar day (NWS climate report). Regional context, not road depth."
+      "mapping_note": "Main Street between E Ferry St and E Delavan Ave (Cold Spring); exact viewpoint unknown"
     },
     {
       "frame_id": "ARC-LAUREL-1223",
@@ -26,10 +28,12 @@
       "license_note": "CC BY-SA 4.0, Andre Carrotflower",
       "observed_at": "2022-12-23",
       "observed_at_precision": "date only (evening, exact time unknown)",
-      "segment_ids": ["S117", "S118"],
+      "segment_ids": [
+        "S117",
+        "S118"
+      ],
       "relation": "on_segment",
-      "mapping_note": "Laurel Street, filmed from a second-floor balcony; exact house unknown",
-      "context_note": "First day of the Dec 23-25, 2022 blizzard. Regional context, not road depth."
+      "mapping_note": "Laurel Street, filmed from a second-floor balcony; exact house unknown"
     },
     {
       "frame_id": "ARC-LAUREL-1224",
@@ -41,10 +45,12 @@
       "license_note": "CC BY-SA 4.0, Andre Carrotflower",
       "observed_at": "2022-12-24T11:30:00-05:00",
       "observed_at_precision": "approximate (file description: about 11:30 AM)",
-      "segment_ids": ["S117", "S118"],
+      "segment_ids": [
+        "S117",
+        "S118"
+      ],
       "relation": "on_segment",
-      "mapping_note": "Laurel Street; exact viewpoint unknown",
-      "context_note": "Buffalo airport daily snowfall Dec 24, 2022: 17.9 in for the calendar day (NWS climate report). Regional context, not road depth."
+      "mapping_note": "Laurel Street; exact viewpoint unknown"
     }
   ]
 }

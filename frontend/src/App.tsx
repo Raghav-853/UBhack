@@ -26,6 +26,7 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const maps = useRef<Record<string, any>>({});
   const [cam, setCam] = useState<string | null>(null);
+  const [hist, setHist] = useState<any>(null);  // stored Tiger Data checkpoint shown instead of live state
 
   useEffect(() => {
     api("/api/network").then(setNetwork).catch((e) => setErr(String(e)));
@@ -46,7 +47,10 @@ export default function App() {
 
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
-  const P = state.policies;
+  const view = hist && hist.run_id === state.run_id ? hist : null;
+  const P = (view || state).policies;
+  const viewBand = (view || state).band;
+  const viewEnv = (view || state).env;
   const camState = cameraStates(state, frames);
   return (
     <div className="app">
@@ -54,12 +58,18 @@ export default function App() {
       <div className="body">
         <div className="maps">
           <MapPane title="FIXED-ORDER LOOP (comparison)" accent={FIXED} network={network} world={P.fixed}
-                   band={state.band} env={state.env} syncKey="fixed" maps={maps}
+                   band={viewBand} env={viewEnv} syncKey="fixed" maps={maps}
                    frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
-                   band={state.band} env={state.env} syncKey="adaptive" maps={maps}
+                   band={viewBand} env={viewEnv} syncKey="adaptive" maps={maps}
                    frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <Legend />
+          {view && (
+            <div className="histbanner">
+              🗄 Viewing stored checkpoint {fmtClock(view.sim_time_s)} from Tiger Data (read-only) · run {view.run_id}
+              <button onClick={() => setHist(null)}>Back to live</button>
+            </div>
+          )}
           {cam && frames.find((f: any) => f.frame_id === cam) && (
             <CameraViewer state={state} network={network} frame={frames.find((f: any) => f.frame_id === cam)}
                           onClose={() => setCam(null)} />
@@ -71,6 +81,7 @@ export default function App() {
           <Metrics state={state} />
           <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={cam} onSelect={setCam} />
           <Log state={state} />
+          <History state={state} onShow={setHist} showing={view} />
         </aside>
       </div>
     </div>
@@ -368,7 +379,17 @@ function CameraViewer({ state, frame, network, onClose }: any) {
       <div className="small muted">
         {frame.relation === "adjacent" ? "Adjacent camera (visibility only) near" : "Mapped to"} {frame.segment_ids.map(segName).join(", ")}{frame.mapping_note ? ` — ${frame.mapping_note}` : ""}
       </div>
-      {frame.context_note && <div className="small context">🌨 {frame.context_note}</div>}
+      {frame.weather_context?.length > 0 && (
+        <details className="small context">
+          <summary>🌨 Historical weather context for {frame.observed_at.slice(0, 10)} (not road depth)</summary>
+          <ul className="wx">
+            {frame.weather_context.map((r: any, i: number) => (
+              <li key={i}><b>{r.value_in} in</b> {r.kind === "snow_depth" ? "snow depth" : "daily snowfall"} · {r.station} · {r.when} · <a href={r.url} target="_blank" rel="noreferrer">{r.source}</a> <span className="muted">({r.use})</span></li>
+            ))}
+          </ul>
+          <div className="muted">{frame.weather_note}</div>
+        </details>
+      )}
       <AnalysisView analysis={analysis} />
       {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
       {analysis?.status === "done" && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
@@ -428,6 +449,7 @@ function Log({ state }: any) {
   return (
     <section>
       <h3>Dispatch decisions</h3>
+      <Radio state={state} />
       {state.alerts.length > 0 && (
         <div className="alerts">{state.alerts.slice(0, 3).map((a: any) => <div key={a.alert_id}>📻 {fmtClock(a.sim_time_s)} {a.text}</div>)}</div>
       )}
@@ -451,6 +473,105 @@ function Log({ state }: any) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function Radio({ state }: any) {
+  const [on, setOn] = useState(false);
+  const [mode, setMode] = useState<string | null>(null);
+  const played = useRef<Set<string>>(new Set());
+  const queue = useRef<any[]>([]);
+  const busy = useRef(false);
+
+  const speakBrowser = (text: string) => new Promise<void>((resolve) => {
+    if (!("speechSynthesis" in window)) return resolve();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.onend = () => resolve(); u.onerror = () => resolve();
+    window.speechSynthesis.speak(u);
+  });
+  const pump = async () => {
+    if (busy.current) return;
+    busy.current = true;
+    while (queue.current.length) {
+      const a = queue.current.shift();
+      try {
+        const r = await fetch(`/api/voice/${a.alert_id}`);
+        if (r.ok && (r.headers.get("content-type") || "").includes("audio")) {
+          const url = URL.createObjectURL(await r.blob());
+          setMode("ElevenLabs");
+          await new Promise<void>((resolve) => { const au = new Audio(url); au.onended = () => resolve(); au.onerror = () => resolve(); au.play().catch(() => resolve()); });
+          URL.revokeObjectURL(url);
+        } else {
+          setMode("browser TTS fallback");
+          await speakBrowser(a.text);
+        }
+      } catch { setMode("browser TTS fallback"); await speakBrowser(a.text); }
+    }
+    busy.current = false;
+  };
+  useEffect(() => {
+    if (!on) { for (const a of state.alerts) played.current.add(a.alert_id); return; }
+    const fresh = [...state.alerts].reverse().filter((a: any) => !played.current.has(a.alert_id));
+    for (const a of fresh) { played.current.add(a.alert_id); queue.current.push(a); }
+    if (fresh.length) pump();
+  }, [state.alerts, on]);
+  return (
+    <div className="row small" style={{ alignItems: "center" }}>
+      <button className={on ? "sel" : ""} onClick={() => setOn(!on)}>{on ? "🔊 Radio on" : "🔈 Radio off"}</button>
+      <span className="muted">{on ? `new dispatch alerts are spoken${mode ? ` · ${mode}` : ""}` : "click to hear dispatch alerts"}</span>
+    </div>
+  );
+}
+
+function History({ state, onShow, showing }: any) {
+  const [cps, setCps] = useState<any[] | null>(null);
+  const [idx, setIdx] = useState(0);
+  const [snap, setSnap] = useState<any>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const tiger = state.integrations.tiger;
+  useEffect(() => { setCps(null); setSnap(null); setMsg(null); }, [state.run_id]);
+  const load = async () => {
+    setMsg(null);
+    try { const c = await api(`/api/runs/${state.run_id}/checkpoints`); setCps(c); setIdx(Math.max(0, c.length - 1)); if (!c.length) setMsg("No checkpoints stored yet (one every 15 simulated minutes)."); }
+    catch (e: any) { setMsg(e.message); }
+  };
+  const fetchCp = async (i: number) => {
+    setIdx(i);
+    try { setSnap(await api(`/api/runs/${state.run_id}/checkpoints/${cps[i].tick}`)); } catch (e: any) { setMsg(e.message); }
+  };
+  const f = snap?.policies?.fixed?.metrics, a = snap?.policies?.adaptive?.metrics;
+  return (
+    <section>
+      <h3>History (Tiger Data)</h3>
+      {!tiger.available ? <div className="small muted">Database not connected{tiger.last_error ? ` (${tiger.last_error})` : ""}.</div> : (
+        <>
+          <div className="row small" style={{ alignItems: "center" }}>
+            <button onClick={load}>Load stored checkpoints</button>
+            <span className="muted">{tiger.rows} rows written this session</span>
+          </div>
+          {cps && cps.length > 0 && (
+            <>
+              <label className="slider">
+                <span>Checkpoint</span>
+                <input type="range" min={0} max={cps.length - 1} value={idx} onChange={(e) => fetchCp(Number(e.target.value))} />
+                <b>{fmtClock(cps[idx].sim_time_s)}</b>
+              </label>
+              {!snap && <button className="small" onClick={() => fetchCp(idx)}>Read checkpoint</button>}
+            </>
+          )}
+          {snap && f && a && (
+            <div className="small">
+              Stored at {fmtClock(snap.sim_time_s)}: critical exposure fixed <b>{f.critical_exposure_min}</b> vs adaptive <b>{a.critical_exposure_min}</b> min ·
+              distance {f.distance_km} vs {a.distance_km} km
+              <div className="row" style={{ marginTop: 4 }}>
+                {showing ? <button onClick={() => onShow(null)}>Back to live</button> : <button className="primary" onClick={() => onShow(snap)}>Show this checkpoint on the maps</button>}
+              </div>
+            </div>
+          )}
+          {msg && <div className="small muted">{msg}</div>}
+        </>
+      )}
     </section>
   );
 }

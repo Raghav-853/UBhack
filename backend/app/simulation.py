@@ -353,7 +353,7 @@ class Engine:
             self.params = params
             self.run_id = uuid.uuid4().hex[:10]
             self.version = hashlib.sha256(json.dumps(
-                {"scenario": sc, "params": params, "net": self.net.file_hash}, sort_keys=True).encode()).hexdigest()[:12]
+                {"scenario": sc, "params": params, "net": self.net.file_hash, "vehicles": VEHICLE_TYPES}, sort_keys=True).encode()).hexdigest()[:12]
             self.band = Band(sc["band"], self.net.center)
             self.env = Env()
             self.worlds = {p: World(p, self.net, sc, self.env, params, self.band) for p in ("fixed", "adaptive")}

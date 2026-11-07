@@ -100,3 +100,6 @@ button.reject { background: #3f1d1d; border-color: #7f1d1d; }
 .cctv[data-state="failed"] { border-color: #a1a1aa; background: rgba(63, 63, 70, 0.9); }
 .context { color: #93c5fd; }
 .viewer a { color: #67e8f9; }
+.histbanner { position: absolute; left: 50%; top: 44px; transform: translateX(-50%); z-index: 4; background: #1e1b4b; border: 1px solid #818cf8;
+  color: #e0e7ff; padding: 6px 10px; border-radius: 6px; display: flex; gap: 10px; align-items: center; font-size: 12px; }
+.wx { margin: 4px 0; padding-left: 16px; } .wx li { margin: 2px 0; }

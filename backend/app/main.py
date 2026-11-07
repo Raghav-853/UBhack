@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 import uuid
@@ -251,6 +252,10 @@ def control(body: ControlIn):
     return {"playback_status": "playing" if engine.playing else "paused", "speed": engine.speed}
 
 
+WEATHER_FILE = ROOT / "data" / "weather" / "dec2022_context.json"
+WEATHER = json.loads(WEATHER_FILE.read_text(encoding="utf-8")) if WEATHER_FILE.exists() else {"rows": [], "note": ""}
+
+
 @app.get("/api/frames")
 def frames():
     out, used = [], {}
@@ -263,6 +268,9 @@ def frames():
             used[tuple(ll)] = k + 1
             ll = [round(ll[0] + 0.0006 * k, 6), ll[1]]
         f["lonlat"] = ll
+        day = (f.get("observed_at") or "")[:10]
+        f["weather_context"] = [r for r in WEATHER["rows"] if r["date"] == day]
+        f["weather_note"] = WEATHER.get("note", "") if f["weather_context"] else ""
         out.append(f)
     return out
 
