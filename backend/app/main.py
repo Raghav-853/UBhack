@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 import uuid
@@ -46,8 +47,51 @@ def _loop():
         if engine.playing:
             substeps = max(1, round(BASE_SIM_PER_WALL_S * WALL_INTERVAL_S * engine.speed / SUBSTEP_S))
             engine.advance(substeps)
+        _announce_camera_proposals()
         _snapshot_cache["data"] = engine.snapshot()
         time.sleep(max(0.05, WALL_INTERVAL_S - (time.time() - start)))
+
+
+# --------------------------------------------- camera radio announcements
+# When Gemini's analysis yields a proposal, announce it once per run (re-announced after a reset).
+# The sentence is assembled only from the validated classification fields; no numbers are invented.
+_announced: set[str] = set()
+_SURFACE = {"snow_covered": "snow-covered", "wet": "wet", "dry": "dry"}
+
+
+def _spoken_place(frame: dict) -> str:
+    title = frame.get("title", frame["frame_id"]).split(" (")[0]
+    title = re.sub(r"\bSt\b\.?", "Street", title)
+    return re.sub(r"\bAve\b\.?", "Avenue", title)
+
+
+def _announce_camera_proposals():
+    for a in list(analyses.values()):
+        if a.get("status") != "done" or not a.get("result"):
+            continue
+        eff = a.get("proposed_effect") or {}
+        if eff.get("kind") in (None, "none"):
+            continue
+        key = f"{engine.run_id}:{a['frame_id']}@{a.get('version')}"
+        if key in _announced or a["frame_id"] not in vision.frames:
+            continue
+        _announced.add(key)
+        frame = vision.frames[a["frame_id"]]
+        r = a["result"]
+        seg = engine.net.segments.get(frame["segment_ids"][0])
+        parts = []
+        if r.get("surface_class") in _SURFACE:
+            parts.append(f"road {_SURFACE[r['surface_class']]}")
+        if r.get("visibility_class") in ("good", "reduced", "poor"):
+            parts.append(f"visibility {r['visibility_class']}")
+        if r.get("obstruction_detected") is True:
+            parts.append("a travel lane appears blocked")
+        action = "Segment closure" if eff["kind"] == "closure" else "Speed reduction"
+        where = (seg.name or "this segment") if seg else "this segment"
+        text = (f"Camera report, {_spoken_place(frame)}, archive footage: {', '.join(parts)}. "
+                f"{action} proposed on {where}. Awaiting dispatcher approval.")
+        with engine.lock:
+            engine.add_alert("camera", text, a["frame_id"])
 
 
 @asynccontextmanager

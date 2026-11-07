@@ -424,7 +424,8 @@ class Engine:
             st["crit_frac_high"] = False
 
     def add_alert(self, kind: str, text: str, ref: str | None = None):
-        alert = {"alert_id": f"{self.run_id}-{len(self.alerts)}-{int(self.t)}", "kind": kind, "text": text,
+        self._alert_seq = getattr(self, "_alert_seq", 0) + 1
+        alert = {"alert_id": f"{self.run_id}-{self._alert_seq}-{int(self.t)}", "kind": kind, "text": text,
                  "sim_time_s": self.t, "ref": ref}
         self.alerts.appendleft(alert)
         return alert
