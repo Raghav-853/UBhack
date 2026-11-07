@@ -22,9 +22,15 @@ type Props = {
   env: any;
   syncKey: string;
   maps: React.MutableRefObject<Record<string, maplibregl.Map>>;
+  frames: any[];
+  selectedCam: string | null;
+  onCameraClick: (id: string) => void;
 };
 
-export default function MapPane({ title, accent, network, world, band, env, syncKey, maps }: Props) {
+export default function MapPane({ title, accent, network, world, band, env, syncKey, maps, frames, selectedCam, onCameraClick }: Props) {
+  const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
+  const clickRef = useRef(onCameraClick);
+  clickRef.current = onCameraClick;
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -75,6 +81,29 @@ export default function MapPane({ title, accent, network, world, band, env, sync
     }
     return () => { clearTimeout(timer); delete maps.current[syncKey]; m.remove(); };
   }, [network]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    const seen = new Set<string>();
+    for (const f of frames || []) {
+      if (!f.lonlat) continue;
+      seen.add(f.frame_id);
+      let mk = camMarkers.current[f.frame_id];
+      if (!mk) {
+        const d = document.createElement("div");
+        d.className = "cctv";
+        d.textContent = "📹";
+        d.addEventListener("click", (e) => { e.stopPropagation(); clickRef.current(f.frame_id); });
+        mk = new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
+        camMarkers.current[f.frame_id] = mk;
+      }
+      mk.setLngLat(f.lonlat);
+      mk.getElement().title = f.title;
+      mk.getElement().classList.toggle("sel", f.frame_id === selectedCam);
+    }
+    for (const id of Object.keys(camMarkers.current)) if (!seen.has(id)) { camMarkers.current[id].remove(); delete camMarkers.current[id]; }
+  }, [frames, selectedCam]);
 
   useEffect(() => {
     if (map.current && ready.current) update(map.current, network, { world, band, env }, markers.current);

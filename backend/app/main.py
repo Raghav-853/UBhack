@@ -24,7 +24,7 @@ load_dotenv(ROOT / ".env", override=False, interpolate=False)
 from .cameras import LiveCameras  # noqa: E402
 from .simulation import SUBSTEP_S, Engine, derive_effect  # noqa: E402
 from .telemetry import Telemetry  # noqa: E402
-from .vision import RASTER, Vision, save_upload  # noqa: E402
+from .vision import MEDIA, VIDEO, Vision, save_upload  # noqa: E402
 from .voice import Voice  # noqa: E402
 
 WALL_INTERVAL_S = 0.5
@@ -94,6 +94,7 @@ class ControlIn(BaseModel):
 class AnalyzeIn(BaseModel):
     run_id: str
     frame_id: str
+    mode: Literal["auto", "live", "replay"] = "auto"
 
 
 class ApplyIn(BaseModel):
@@ -163,7 +164,12 @@ def control(body: ControlIn):
 
 @app.get("/api/frames")
 def frames():
-    return vision.public_frames()
+    out = []
+    for f in vision.public_frames():
+        seg = engine.net.segments.get(f["segment_ids"][0]) if f.get("segment_ids") else None
+        f["lonlat"] = f.get("lonlat") or (engine.net.to_ll(seg.mid) if seg else None)
+        out.append(f)
+    return out
 
 
 @app.post("/api/cameras/refresh")
@@ -197,19 +203,19 @@ async def upload_frame(
     license_note: str = Form(""),
 ):
     ext = "." + (file.filename or "").rsplit(".", 1)[-1].lower()
-    if ext not in RASTER:
-        raise HTTPException(422, "Upload a JPG, PNG or WEBP image")
+    if ext not in MEDIA:
+        raise HTTPException(422, "Upload an image (JPG/PNG/WEBP) or video (MP4/WEBM/MOV)")
     if segment_id not in engine.net.segments:
         raise HTTPException(422, "Unknown segment")
     data = await file.read()
-    if len(data) > 8_000_000:
-        raise HTTPException(413, "Image too large (8 MB max)")
+    if len(data) > (80_000_000 if ext in VIDEO else 8_000_000):
+        raise HTTPException(413, "File too large (8 MB image / 80 MB video)")
     frame_id = "UP-" + uuid.uuid4().hex[:6].upper()
     rel = f"uploads/{frame_id}{ext}"
-    dest = vision.frame_path({"image": rel})
+    dest = vision.frame_path({"media": rel})
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
-    frame = {"frame_id": frame_id, "camera_id": frame_id, "title": title[:80], "image": rel,
+    frame = {"frame_id": frame_id, "camera_id": frame_id, "title": title[:80], "media": rel,
              "source": source[:120], "license_note": license_note[:200], "observed_at": observed_at or None,
              "received_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "segment_ids": [segment_id],
              "relation": relation, "version": int(time.time())}
@@ -239,16 +245,17 @@ def analyze(body: AnalyzeIn):
         for o in engine.observations.values():
             if (o.get("run_id") == body.run_id and o.get("frame_id") == body.frame_id
                     and o.get("frame_version") == vision.frames[body.frame_id].get("version")
+                    and o.get("mode") == body.mode
                     and o["status"] in ("processing", "done")):
                 return o
         obs = {"observation_id": "obs-" + uuid.uuid4().hex[:8], "run_id": body.run_id, "frame_id": body.frame_id,
                "status": "processing", "result": None, "applications": [],
-               "frame_version": vision.frames[body.frame_id].get("version"),
+               "frame_version": vision.frames[body.frame_id].get("version"), "mode": body.mode,
                "segment_ids": vision.frames[body.frame_id]["segment_ids"]}
         engine.observations[obs["observation_id"]] = obs
 
     def work():
-        res = vision.analyze(body.frame_id)
+        res = vision.analyze(body.frame_id, body.mode)
         with engine.lock:
             if obs["run_id"] != engine.run_id:
                 obs["status"] = "stale"

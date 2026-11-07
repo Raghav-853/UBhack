@@ -18,3 +18,4 @@ data/raw/
 data/frames/live/
 data/frames/uploads/
 data/frames/uploads.json
+frontend/*.tsbuildinfo
