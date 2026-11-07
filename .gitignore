@@ -1,0 +1,10 @@
+# Local secrets. Already tracked files require explicit removal from Git.
+.env
+.env.*
+!.env.example
+Docs/*-credentials.txt
+
+# Local Python environment and bytecode.
+.venv/
+__pycache__/
+*.pyc
