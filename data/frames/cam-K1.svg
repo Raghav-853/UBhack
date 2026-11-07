@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+<rect width="640" height="360" fill="#5b6672"/>
+<rect y="0" width="640" height="150" fill="#8d99a6"/>
+<polygon points="250,150 390,150 640,360 0,360" fill="#e8eef5"/>
+<polygon points="316,150 324,150 340,360 300,360" fill="#b9c3cc"/>
+<rect x="330" y="235" width="120" height="55" rx="10" fill="#3a3f46"/><rect x="345" y="215" width="80" height="30" rx="8" fill="#2c3036"/><circle cx="350" cy="292" r="12" fill="#111"/><circle cx="430" cy="292" r="12" fill="#111"/><polygon points="300,300 315,270 330,300" fill="#f39c12"/>
+
+<rect x="0" y="0" width="640" height="34" fill="#000" opacity="0.6"/>
+<text x="12" y="23" font-family="monospace" font-size="16" fill="#fff">CAM-K1  Kensington Ave near ECMC</text>
+<rect x="0" y="326" width="640" height="34" fill="#b3261e" opacity="0.85"/>
+<text x="12" y="349" font-family="monospace" font-size="15" fill="#fff">SYNTHETIC FIXTURE - illustrative drawing, not a camera capture</text>
+</svg>

@@ -1,0 +1,4 @@
+{
+  "note": "Explicit 511NY camera -> corridor segment mapping. After NY511_API_KEY is set, GET /api/cameras/nearby lists catalog cameras near the corridor; copy the ones that actually view a segment here.",
+  "cameras": []
+}

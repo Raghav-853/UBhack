@@ -1,0 +1,15 @@
+{
+  "id": "clear_weather",
+  "label": "Clear weather (control)",
+  "description": "No snowfall. Dispatch must not invent work on clear roads.",
+  "duration_s": 7200,
+  "initial_depth_in": 0.0,
+  "background_rate_in_hr": 0.0,
+  "band": {"rate_in_hr": 0.0, "heading_deg": 75, "width_m": 1800, "length_m": 30000,
+           "offset_m": 0, "drift_mps": 0.0, "wobble_amp_m": 0, "wobble_period_s": 9000},
+  "fleet": [
+    {"id": "P1", "type": "heavy_plow", "start": "UB South Campus"},
+    {"id": "P2", "type": "heavy_plow", "start": "BNMC"},
+    {"id": "B1", "type": "compact_blower", "start": "ECMC"}
+  ]
+}

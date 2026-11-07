@@ -8,3 +8,13 @@ Docs/*-credentials.txt
 .venv/
 __pycache__/
 *.pyc
+
+# Build outputs and large raw downloads.
+frontend/node_modules/
+frontend/dist/
+data/raw/
+
+# Downloaded 511NY camera images (attribution required; not redistributed).
+data/frames/live/
+data/frames/uploads/
+data/frames/uploads.json
