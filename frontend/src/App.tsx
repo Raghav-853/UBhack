@@ -29,7 +29,9 @@ export default function App() {
   useEffect(() => {
     api("/api/network").then(setNetwork).catch((e) => setErr(String(e)));
     api("/api/scenarios").then(setScenarios).catch(() => {});
-    api("/api/frames").then(setFrames).catch(() => {});
+    const loadFrames = () => api("/api/frames").then(setFrames).catch(() => {});
+    loadFrames();
+    const framesTimer = setInterval(loadFrames, 60_000);
     let alive = true;
     const poll = async () => {
       try { const s = await api("/api/state"); if (alive) { setState(s); setErr(null); } }
@@ -37,8 +39,9 @@ export default function App() {
       if (alive) setTimeout(poll, 500);
     };
     poll();
-    return () => { alive = false; };
+    return () => { alive = false; clearInterval(framesTimer); };
   }, []);
+  const reloadFrames = () => api("/api/frames").then(setFrames).catch(() => {});
 
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
@@ -57,7 +60,7 @@ export default function App() {
         <aside className="side">
           <Controls state={state} scenarios={scenarios} />
           <Metrics state={state} />
-          <Camera state={state} frames={frames} network={network} />
+          <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} />
           <Log state={state} />
         </aside>
       </div>
@@ -201,8 +204,17 @@ function Metrics({ state }: any) {
   );
 }
 
-function Camera({ state, frames, network }: any) {
+function Camera({ state, frames, network, reloadFrames }: any) {
   const [sel, setSel] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const ny = state.integrations.ny511;
+  const refresh511 = async () => {
+    setRefreshing(true); setMsg(null);
+    try { const r = await api("/api/cameras/refresh", {}); setMsg(`511NY: ${r.updated.length} camera(s) refreshed`); await reloadFrames(); }
+    catch (e: any) { setMsg(e.message); }
+    finally { setRefreshing(false); }
+  };
+  const ago = (ts: number | null) => ts ? `${Math.round((Date.now() / 1000 - ts) / 60)} min ago` : "never";
   const [obs, setObs] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const frame = frames.find((f: any) => f.frame_id === sel);
@@ -210,7 +222,7 @@ function Camera({ state, frames, network }: any) {
     const s = network.segments.find((x: any) => x.segment_id === sid);
     return s ? `${s.name || s.highway} (${sid})` : sid;
   };
-  useEffect(() => { setObs(null); setMsg(null); }, [state.run_id, sel]);
+  useEffect(() => { setObs(null); setMsg(null); }, [state.run_id, sel, frame?.version]);
 
   const analyze = async () => {
     setMsg(null);
@@ -236,6 +248,14 @@ function Camera({ state, frames, network }: any) {
   return (
     <section>
       <h3>Camera observations → dispatch</h3>
+      <div className="row small" style={{ alignItems: "center" }}>
+        <button onClick={refresh511} disabled={!ny.configured || refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh 511NY"}</button>
+        <span className="muted">
+          {ny.configured ? `auto every ${Math.round(ny.interval_s / 60)} min · last ${ago(ny.last_refresh)}${ny.last_error ? " · " + ny.last_error : ""}`
+                         : "511NY key not configured — showing stored frames"}
+        </span>
+      </div>
+      <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); setSel(f.frame_id); }} />
       <div className="thumbs">
         {frames.map((f: any) => (
           <button key={f.frame_id} className={sel === f.frame_id ? "sel" : ""} onClick={() => setSel(f.frame_id)}>
@@ -246,8 +266,9 @@ function Camera({ state, frames, network }: any) {
       {frame && (
         <div className="cam">
           <img src={frame.image_url} alt={frame.title} />
+          {frame.relation === "adjacent" && <div className="small" style={{ color: "#fbbf24" }}>Adjacent camera: may support a visibility slowdown, never a closure.</div>}
           <div className="small muted">
-            Source: {frame.source} · captured: {frame.observed_at || "unknown"} · maps to {frame.segment_ids.map(segName).join(", ")}
+            Source: {frame.source} · captured: {frame.observed_at || "unknown"}{frame.received_at ? ` · fetched ${frame.received_at.slice(11, 16)} UTC` : ""} · maps to {frame.segment_ids.map(segName).join(", ")}
           </div>
           <button className="primary" onClick={analyze} disabled={obs?.status === "processing"}>
             {obs?.status === "processing" ? "Analyzing…" : frame.live_capable ? "Analyze with Gemini" : "Analyze (fixture — no live Gemini)"}
@@ -270,6 +291,51 @@ function Camera({ state, frames, network }: any) {
         </div>
       )}
     </section>
+  );
+}
+
+const SOURCES = ["511NY capture (NYSDOT)", "NITTEC capture", "BTPM Live Roof Cam", "Team photo", "Other"];
+
+function AddFrame({ network, onAdded }: any) {
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState("");
+  const [source, setSource] = useState(SOURCES[0]);
+  const [observed, setObserved] = useState("");
+  const [segment, setSegment] = useState("");
+  const [relation, setRelation] = useState("on_segment");
+  const [msg, setMsg] = useState<string | null>(null);
+  const segs = [...network.segments].sort((a: any, b: any) => (a.name || a.highway).localeCompare(b.name || b.highway) || a.segment_id.localeCompare(b.segment_id));
+  const submit = async () => {
+    if (!file || !title || !segment) { setMsg("Image, title and segment are required"); return; }
+    const fd = new FormData();
+    fd.append("file", file); fd.append("title", title); fd.append("source", source);
+    fd.append("segment_id", segment); fd.append("relation", relation);
+    if (observed) fd.append("observed_at", new Date(observed).toISOString());
+    const r = await fetch("/api/frames/upload", { method: "POST", body: fd });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { setMsg(j.detail || "Upload failed"); return; }
+    setMsg(null); setOpen(false); setFile(null); setTitle("");
+    onAdded(j);
+  };
+  if (!open) return <button className="small" onClick={() => setOpen(true)} style={{ marginBottom: 6 }}>＋ Add camera frame (any source)</button>;
+  return (
+    <div className="addframe">
+      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+      <input placeholder="Title (e.g. NY 33 at Grider St)" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
+      <label className="small muted">Capture time (local) <input type="datetime-local" value={observed} onChange={(e) => setObserved(e.target.value)} /></label>
+      <select value={segment} onChange={(e) => setSegment(e.target.value)}>
+        <option value="">Mapped segment…</option>
+        {segs.map((s: any) => <option key={s.segment_id} value={s.segment_id}>{s.name || s.highway} ({s.segment_id}){s.critical ? " · critical" : ""}</option>)}
+      </select>
+      <select value={relation} onChange={(e) => setRelation(e.target.value)}>
+        <option value="on_segment">Camera views this segment directly</option>
+        <option value="adjacent">Adjacent camera (e.g. highway) — visibility only</option>
+      </select>
+      <div className="row"><button className="primary" onClick={submit}>Upload</button><button onClick={() => setOpen(false)}>Cancel</button></div>
+      {msg && <div className="bad small">{msg}</div>}
+    </div>
   );
 }
 

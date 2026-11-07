@@ -77,3 +77,6 @@ ul.log li.service b { color: var(--good); } ul.log li.reroute b { color: #f43f5e
 .landmark .star { color: #f472b6; margin-right: 3px; }
 .maplibregl-popup-content { background: #111a2e; color: var(--text); font-size: 12px; border: 1px solid var(--line); }
 .maplibregl-popup-tip { display: none; }
+.addframe { display: flex; flex-direction: column; gap: 5px; padding: 8px; border: 1px dashed var(--line); border-radius: 5px; margin-bottom: 8px; }
+.addframe input:not([type=file]) { background: #1a2742; color: var(--text); border: 1px solid var(--line); border-radius: 5px; padding: 5px; font: inherit; }
+.thumbs { flex-wrap: wrap; } .thumbs button { min-width: 30%; }

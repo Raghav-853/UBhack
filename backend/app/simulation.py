@@ -457,7 +457,7 @@ class Engine:
         closed = set()
         for p in due:
             obs, sid = p["observation"], p["segment_id"]
-            effect = derive_effect(obs["result"], self.params)
+            effect = obs.get("proposed_effect") or derive_effect(obs["result"], self.params)
             seg = self.net.segments[sid]
             label = seg.name or seg.highway
             if effect["kind"] == "closure":

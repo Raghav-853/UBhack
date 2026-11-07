@@ -33,11 +33,21 @@ class CameraObservation(BaseModel):
     evidence_summary: str = Field(max_length=400)
 
 
+UPLOADS = FRAMES_DIR / "uploads.json"
+
+
 def load_frames() -> dict[str, dict]:
-    path = FRAMES_DIR / "frames.json"
-    if not path.exists():
-        return {}
-    return {f["frame_id"]: f for f in json.loads(path.read_text(encoding="utf-8"))["frames"]}
+    out = {}
+    for path in (FRAMES_DIR / "frames.json", UPLOADS):
+        if path.exists():
+            out.update({f["frame_id"]: f for f in json.loads(path.read_text(encoding="utf-8"))["frames"]})
+    return out
+
+
+def save_upload(frame: dict):
+    data = json.loads(UPLOADS.read_text(encoding="utf-8")) if UPLOADS.exists() else {"frames": []}
+    data["frames"] = [f for f in data["frames"] if f["frame_id"] != frame["frame_id"]] + [frame]
+    UPLOADS.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 class Vision:
@@ -65,7 +75,7 @@ class Vision:
             p = self.frame_path(f)
             out.append({
                 **{k: v for k, v in f.items() if k != "recorded_result"},
-                "image_url": f"/api/frames/{f['frame_id']}/image",
+                "image_url": f"/api/frames/{f['frame_id']}/image?v={f.get('version', 0)}",
                 "is_raster": p.suffix.lower() in RASTER,
                 "has_recorded_result": "recorded_result" in f,
                 "live_capable": bool(self.key) and p.suffix.lower() in RASTER and p.exists(),
