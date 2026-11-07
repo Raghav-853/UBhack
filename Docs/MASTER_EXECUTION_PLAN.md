@@ -59,7 +59,7 @@ Times below are interpreted as **America/New_York local time** from the Buffalo 
 - [ ] Inspect the latest remote changes before creating feature branches; teammates may already have started.
 - [ ] Freeze the MVP in Section 3 and agree the contracts in Section 6.
 - [ ] Check local frontend/backend execution and make one real provider request if credentials are available.
-- [ ] Secure a permitted image, explicit camera-to-segment mapping, and feasible alternate path. Test whether the genuine result supports an obstruction event or a visibility-based speed adjustment. Choose the truthful downstream role before committing to the demo; do not force a detection.
+- [ ] Start with the archived Buffalo footage in Section 8: register permitted frames, original capture metadata, and explicit visible-segment mappings. Test whether a genuine result supports an obstruction event or a visibility-based speed adjustment. Choose the truthful downstream role before committing to the demo; do not force a detection. Live 511NY access is not a kickoff dependency.
 - [ ] Start the Devpost draft immediately with title, problem, team, and planned stack; update claims as features become real.
 - [ ] Select a connected corridor, two feasible vehicle start locations, and one reproducible storm scenario.
 
@@ -75,7 +75,7 @@ Use a 15-minute investigation limit for any individual provider-access problem. 
 4. A complete loop: accumulation → observation/event → dispatch decision → legal vehicle movement → service → reduced snow → updated decision.
 5. A feasible fixed-order policy and an adaptive policy running under identical scenario conditions.
 6. A dashboard showing road estimates, both policies' results, vehicles, reasons for reassignment, and measurement units.
-7. At least one genuine Gemini image analysis with a traceable result and a visible, bounded role in the loop. Until available, label AI integration incomplete.
+7. At least one genuine Gemini analysis of archived Buffalo imagery with a traceable result and a visible, bounded role in the loop. Use the same registered archival inputs for development and the repeatable demo. Until available, label AI integration incomplete.
 8. Repeatable reset, a saved scenario definition, benchmark output, and a recorded demonstration.
 
 ### Add after the core gate passes
@@ -84,7 +84,7 @@ Use a 15-minute investigation limit for any individual provider-access problem. 
 | :--- | :--- | :--- |
 | Tiger Data persistence | Both policies' telemetry written; read-only history view loads a stored checkpoint | Database setup threatens core integration or submission buffer |
 | ElevenLabs dispatch | One real event produces one playable generated callout | Core demo, measurements, or video incomplete |
-| Live camera refresh | Authorized image retrieval with capture time, source, and failure handling | Access or coverage remains uncertain after the initial spike |
+| 511NY live camera layer (last optional addition) | After the core demo, evidence, and submission preparation are complete: authorized retrieval, source/capture metadata, failure handling, and visibly separate live inspection | Skip if access takes more than 15 minutes, coverage is unsuitable, or the feature threatens the freeze/submission buffer |
 | Map basemap / extra visual polish | Works on the judging laptop with correct attribution | Token, tiles, GPU, or network dependence makes the demo fragile |
 
 ### Defer
@@ -146,6 +146,7 @@ This layout is a target to create during implementation; these files do not curr
 | `frontend/src/` | UI owner | Map, controls, comparisons, event explanations |
 | `frontend/package.json`, lockfile | UI owner | Reproducible frontend commands and dependencies |
 | `data/corridor.geojson`, `data/scenarios/` | Simulation + data owners | Network fixture, scenarios, provenance, assumptions |
+| `data/observations/`, `data/weather/` | Data/AI owner | Registered archival frames and license manifest; historical station observations with units, report times, coordinates, and source provenance; independent image labels |
 | `contracts/state.example.json` | Integration lead | Shared valid response fixture for parallel work |
 | `scripts/benchmark.py` | Simulation owner | Repeatable policy comparison and evidence export |
 | `Docs/RESULTS.md`, `Docs/DEMO_SCRIPT.md` | Evidence/pitch owner | Actual outcomes and final presentation |
@@ -272,6 +273,51 @@ Apply each accepted segment observation once, deduplicating by run, observation,
 
 Store the actual response, frame source/license or permission, capture time if known, model identifier, and application event. A genuine result from archived imagery can be replayed reproducibly with its original provenance. Manual scenario obstacles remain visibly synthetic. Failure, poor visibility, or ambiguous classification produces `unknown`/review status rather than an invented successful detection. The first vision integration gate is causal and inspectable; accuracy claims require separate labeled evaluation.
 
+### Archived Buffalo imagery first; optional live inspection last
+
+**Decision, November 7, 2026:** use archived local imagery for development and the judged demonstration. Add a 511NY live layer only after the complete recorded-input loop, measurements, backup video, and submission preparation are ready, and only before feature freeze. The core application must work without live camera access.
+
+The following are identified source assets, not yet downloaded, visually assessed for model suitability, or analyzed by Gemini:
+
+| Asset | Capture metadata available from the source | Intended role |
+| :--- | :--- | :--- |
+| [Main Street, Cold Spring, December 24, 2022](https://commons.wikimedia.org/wiki/File:Main_Street_in_Cold_Spring,_Buffalo,_New_York_during_December_2022_blizzard_-_20221224_-_01.webm) | 34-second video; description places capture at approximately 11:30 AM local | Main-street surface/visibility observation |
+| [Laurel Street, December 23, 2022](https://commons.wikimedia.org/wiki/File:Laurel_Street_during_December_2022_Buffalo,_New_York_blizzard_-_20221223_-_02.webm) | 16-second video from a house balcony; evening, exact time unknown | Residential-street observation during blowing snow |
+| [Laurel Street, December 24, 2022](https://commons.wikimedia.org/wiki/File:Laurel_Street_during_December_2022_Buffalo,_New_York_blizzard_-_20221224_-_02.webm) | 20-second video; description places capture at approximately 11:30 AM local | Residential-street observation on the following day |
+| [Maryland Street, Allentown, January 2015](https://commons.wikimedia.org/wiki/File:Allentown_Winter_Scene,_Maryland_Street,_Buffalo,_New_York,_January_2015.jpg) | Still image; month known, exact day/time unknown | Optional additional residential example; exclude from exact-date weather matching |
+
+These assets are credited to Andre Carrotflower under CC BY-SA 4.0 on their individual file pages. Preserve creator, source link, license link, and change/extraction notices; distribute adapted media under the required license. Register each frame with its parent asset and video offset. Approximate times remain approximate; an upload timestamp is not a capture timestamp. Confirm the actual field of view before mapping a frame to a service segment. Road width and equipment compatibility remain documented scenario classifications, not inferred measurements from these clips.
+
+Sample a few useful frames from each clip for inference and optionally play the original clip alongside them. Show the original capture date and an **archived footage** label. The clips are sparse observations, not a continuous recording of the storm; footage from different days must not be presented as a continuous real-time sequence. Retain the synthetic moving-band scenario for the fair dispatch comparison and schedule archival observations at explicit scenario ticks. Label any historically inspired weather input and its temporal/spatial assumptions separately.
+
+For optional live inspection, use the [511NY developer access process](https://prod-ny.ibi511.com/developers/resources) and [camera API documentation](https://prod-ny.ibi511.com/developers/help/api/get-api-getcameras_key_format). Documentation was indexed during research, but direct requests returned HTTP 503; approved credentials, retrieval, usage permissions, and useful coverage remain unverified. Keep current live inspection separate from archived demo playback. A live result enters a simulated run only through explicit operator acceptance and a valid segment mapping; version/reset the paired run if its input schedule changes. Highway observations do not establish conditions on surrounding residential roads. Unobserved streets retain simulated estimates.
+
+### Historical snow evidence: available context, limited ground truth
+
+**Historical measurements exist for the December 23–24 footage dates, but no co-located, time-matched measurement of snow depth on the visible Main/Laurel road surfaces has been verified.** Regional station observations can support storm context and plausibility checks; they cannot validate inches inferred from an image or establish the amount remaining on a plowed/drifted street.
+
+| Evidence | Verified observation | Appropriate use |
+| :--- | :--- | :--- |
+| Buffalo airport daily snowfall, December 23, 2022 | 22.3 inches for the calendar day; [NWS climate report archived by Iowa State](https://mesonet2.agron.iastate.edu/wx/afos/p.php?e=202212240652&pil=CLIBUF) | Historical snowfall context; not road depth or snowfall accumulated by an earlier frame time |
+| Buffalo airport daily snowfall, December 24, 2022 | 17.9 inches for the calendar day; [NWS climate report archived by Iowa State](https://mesonet2.agron.iastate.edu/wx/afos/p.php?e=202212250623&pil=CLIBUF) | Historical context; the complete daily total includes snow after the approximately 11:30 AM clips |
+| Kenmore 0.3 ESE, NY-ER-59 | 18 inches snow depth at December 24, 13:00 UTC (8:00 AM EST); coordinates 42.96316, -78.86690 | Nearby point observation; source labels reports unofficial/provisional |
+| Snyder 0.6 SW, NY-ER-203 | 25 inches snow depth at December 24, 13:00 UTC (8:00 AM EST); coordinates 42.95979, -78.79337 | Nearby point observation; source labels reports unofficial/provisional |
+| Cheektowaga 2.4 NW, NY-ER-122 | 18 inches snow depth at December 24, 12:00 UTC (7:00 AM EST); coordinates 42.93457, -78.78295 | Nearby point observation; source labels reports unofficial/provisional |
+
+The three station-depth rows come from the [NOHRSC observation table](https://www.nohrsc.noaa.gov/nsa/reports.html?dd=25&dm=12&dy=2022&filter=0&region=Southern_Great_Lakes&sort=value&units=e&var=snowdepth) and its [coordinate-bearing text export](https://www.nohrsc.noaa.gov/nsa/discussions_text/Southern_Great_Lakes/snowdepth/202212/snowdepth_2022122506_e.txt). The report-page date is December 25, but these individual station readings are from December 24; preserve each row's actual report time. They are reference sites, not a verified nearest-station selection for each camera.
+
+For a machine-readable historical subset, start with [NCEI station USW00014733](https://www.ncei.noaa.gov/cdo-web/datasets/GHCND/stations/GHCND:USW00014733/detail), listed at 42.93998, -78.73606, and the [GHCN-Daily format documentation](https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt). Retrieve only the required dates/elements, keeping `SNOW` (new snowfall) separate from `SNWD` (snow depth). Raw GHCN-Daily uses millimeters for both; convert explicitly to inches, retain missing/trace/quality flags, and preserve observation periods where available. The source records above were inspected; a local weather fixture and reconciled GHCN subset still need to be created.
+
+Snowfall over an interval and snow depth at an observation time are different measurements; settling, melting, blowing/drifting, and removal affect the comparison. [NWS measurement guidance](https://www.weather.gov/jkl/snow_measurement) explains the distinction. Do not sum daily snowfall and label it road depth, divide a daily total into a claimed observed hourly rate, or substitute water-equivalent precipitation for snowfall. If a uniform rate is derived for a scenario, label that temporal distribution as synthetic. Future daily totals can appear in retrospective context but must not be passed to a model as knowledge available at an earlier capture time.
+
+### Check what the vision model can actually verify
+
+1. Create a small frame set with source IDs, offsets, capture-time precision, and confirmed visible segments. Include independent dry/wet examples if available; snow-only footage cannot establish performance across all classes.
+2. Have a teammate label surface class, visibility class, and visible obstacles before seeing Gemini output. Agree a short labeling guide, allow `unknown`, and record disagreements. Poor visibility or a blocked camera view is not automatically a blocked road; visible parked/buried cars do not alone prove impassability.
+3. Keep a held-out subset out of prompt tuning; prefer holding out an entire clip/location where feasible. Report the number of frames and distinct clips/locations because adjacent frames are correlated. Keep weather totals out of image-only evaluation prompts to avoid revealing the expected class.
+4. Compare predictions with independent labels: show per-class counts, a small confusion matrix, unknown/abstention counts, and representative errors. A tiny sample is a demo sanity check, not a general accuracy claim. Keep weather station measurements alongside as context, with coordinates, time offsets, and camera-to-station distance once camera location is established; do not use them as image-class labels.
+5. Numerical road-depth validation remains deferred until co-located, time-matched road-depth measurements or a calibrated measurement method exist. Physics/unit tests validate accumulation arithmetic; they do not establish that a historical street had the simulated depth. Preserve one frozen scenario and the same accepted observation schedule for both policies.
+
 ## 9. Tiger Data and the evidence pipeline
 
 Keep the active simulation in memory. Write telemetry asynchronously so database latency cannot stall movement. Reuse ordinary PostgreSQL concepts and the deployed TimescaleDB version's supported hypertable syntax; verify extension availability and one insert/query before building a history panel. [Hypertables](https://docs.timescale.com/docs/learn/hypertables/understand-hypertables), [current operations documentation](https://www.tigerdata.com/docs/learn/hypertables/optimize-data-in-hypertables)
@@ -339,14 +385,15 @@ These are cumulative hours from H0, not a promise of available time. Every row m
 
 | Window | Deliverable / owner | Dependencies | Pass condition |
 | :--- | :--- | :--- | :--- |
-| H0–1 | Contract, corridor fixture, runnable shells, AI input feasibility / lead + owners | Kickoff decisions | UI reads the API example state; health works; permitted image and honest downstream role identified |
+| H0–1 | Contract, corridor fixture, runnable shells, archival input feasibility / lead + owners | Kickoff decisions | UI reads the API example state; health works; permitted Buffalo frame, provenance, mapping, and honest downstream role identified; no live-feed dependency |
 | H1–3 | First physical loop / simulation + UI | Network and schemas | A band increases depth, one unit travels, one completed pass reduces local depth on screen |
 | H3–5 | Paired policy worlds / simulation + UI | Working loop | Same scenario initializes both; metrics differ only through policy behavior |
 | H5–8 | Adaptive rules and legal movement / simulation | Feasible fixed loop | Heavy/compact constraints hold; moving-band scenario completes with explanations |
-| H8–11 | Genuine observation path / data + UI | Stable events and feasible mapped sample | One real image result is validated; accepted event causes a traceable legal route or travel-time change |
+| H8–11 | Genuine archival observation path / data + UI | Stable events and feasible mapped sample | One real archived-image result is validated; accepted event causes a traceable legal route or travel-time change; small independently labeled check recorded; weather evidence is context |
 | H11–14 | Persistence and benchmark report / data + evidence | Stable runs | Actual insert/read when connected; frozen scenario suite produces saved comparison results |
 | H14–16 | Usability and judging-laptop run / UI + lead | Core acceptance gates | A teammate starts it from README; reset, pause, labels, and fallbacks work |
 | H16–18 | Optional voice, recording, rehearsal / presenter + owners | Submission draft and core evidence complete | Complete recorded demo and timed pitch; optional feature cannot break baseline |
+| Spare time before freeze only | Optional 511NY live inspection / data + UI | Core gates, benchmark evidence, backup video, and submission preparation complete | Authorized current-frame retrieval and failure state; separate live/archive labels; stop after 15 minutes if access fails |
 | Remaining time | Fix defects and finalize submission / all | Feature freeze | Final package submitted and re-opened for verification |
 
 ### Absolute internal checkpoints
@@ -391,7 +438,8 @@ The following are implementation acceptance checks, **not tests already run**. A
 | Failure | Trigger | Response |
 | :--- | :--- | :--- |
 | OSM extraction / connectivity | No usable graph after 30 minutes | Use a smaller documented extract; mark manually authored fallback geometry synthetic |
-| Camera access / coverage | No authorized useful frame after 15 minutes | Use permitted recorded imagery with source/capture metadata; do not imply live retrieval |
+| Archival asset suitability | No useful permitted frame or defensible segment mapping after 15 minutes | Select another registered archival asset; keep source/capture metadata and supported AI role explicit |
+| Optional 511NY access / coverage | No authorized useful live frame after 15 minutes, or feature freeze reached | Omit live layer; continue with the complete archived-input demonstration |
 | Gemini / quota | Request fails or is too slow for demo | Replay a labeled genuine saved response if available; otherwise mark synthetic fixture and remove completed-integration claims |
 | Database | Connection unavailable during integration gate | Keep in-memory state and JSON export; show degraded persistence and omit a completed Tiger Data claim |
 | Tiles / GPU | Map does not render reliably | Render local geometry standalone or in SVG; preserve units, IDs, attribution, and metrics |
@@ -405,7 +453,7 @@ No provider request should block the tick loop. Bound retries and deduplicate do
 
 Prioritize one readable screen: map, compact comparison panel, event/observation details, and a small scenario-control area. Use consistent units, an explicit simulated clock, vehicle-type labels, and a clear road-state legend. Reinforce color with text or line styling. An empty/loading/error state should retain enough context for the presenter to continue.
 
-Data status must be understandable: synthetic storm, estimated depth, archived image with capture time, current inference, or recorded inference. These distinctions affect how users interpret the result. Label historical inspection separately from the active run. Keep the main screen focused on planning decisions rather than provider logos or configuration.
+Data status must be understandable: synthetic storm, estimated depth, archived image with capture time/precision, current inference, or recorded inference. A fresh Gemini response to an old frame is still an inference on archived imagery. Historical weather observations show their station/location, measurement type, units, and report time and are labeled context rather than measured street depth. These distinctions affect how users interpret the result. Label historical inspection separately from the active run; put optional 511NY live inspection in a separate mode/panel. Keep the main screen focused on planning decisions rather than provider logos or configuration.
 
 Use actual OSM provenance and attribution on the map and in the README. Verify applicable data/image permissions before packaging assets. Map data licensing is separate from the application's eventual code license. [OpenStreetMap attribution and license](https://www.openstreetmap.org/copyright/en)
 
@@ -463,6 +511,9 @@ Sources were checked during planning on November 7, 2026. External schedules, pr
 | Public snow-map semantics | Verified from [city winter plan](https://www.buffalony.gov/DocumentCenter/View/18119/SNOW-PLAN_26-27_FINAL-compressed); not a full audit of municipal operations |
 | Smaller equipment for narrow streets and tracking improvements | Supported by [city equipment announcement](https://www.buffalony.gov/m/newsflash/Home/Detail/1659); use general fleet context rather than an exact disputed equipment count |
 | Current 511NY programmatic retrieval, camera coverage, image permissions | Not operationally verified; existing documentation routes changed during earlier checks; live access is an implementation spike |
+| Archived Buffalo footage strategy | Selected as the development/demo baseline; Main/Laurel videos and Maryland Street still identified in Section 8 with CC BY-SA 4.0 file-page licensing; local assets, visible-segment mappings, and model suitability still to verify |
+| December 23–24, 2022 historical snow context | NWS airport daily snowfall and NOHRSC nearby station-depth reports verified in Section 8; not co-located road-depth ground truth; local fixture and image-label evaluation remain implementation work |
+| 511NY priority and mode | Last optional addition after the recorded-input demo/evidence/submission preparation; separate live inspection; omit if access/time fails |
 | Camera-based road-surface classification | Prior work exists in [NWS-hosted research abstracts](https://www.weather.gov/media/aly/NROW/NROW23/Book%20of%20Abstracts.pdf); differentiation must rest on our complete planning/comparison workflow |
 | Gemini image/schema capabilities | Documentation verified; credentials, chosen model/SDK, semantic quality, and real request remain unverified |
 | Tiger Data and map integration | Documentation verified; dependencies, service access, performance, and app integration remain unverified |
