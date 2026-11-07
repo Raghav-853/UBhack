@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -21,9 +21,10 @@ from .network import ROOT
 load_dotenv(ROOT / ".env.local", override=False, interpolate=False)
 load_dotenv(ROOT / ".env", override=False, interpolate=False)
 
+from .cameras import LiveCameras  # noqa: E402
 from .simulation import SUBSTEP_S, Engine, derive_effect  # noqa: E402
 from .telemetry import Telemetry  # noqa: E402
-from .vision import Vision  # noqa: E402
+from .vision import RASTER, Vision, save_upload  # noqa: E402
 from .voice import Voice  # noqa: E402
 
 WALL_INTERVAL_S = 0.5
@@ -33,6 +34,7 @@ engine = Engine()
 vision = Vision()
 telemetry = Telemetry(engine)
 voice = Voice()
+live_cams = LiveCameras(vision, engine.net)
 executor = ThreadPoolExecutor(max_workers=2)
 _snapshot_cache: dict = {"data": None}
 
@@ -62,7 +64,7 @@ def integrations() -> dict:
         "gemini": vision.status(),
         "tiger": telemetry.status(),
         "voice": voice.status(),
-        "camera_source": "recorded/synthetic frames in data/frames (511NY live retrieval not connected)",
+        "ny511": live_cams.status(),
     }
 
 
@@ -98,6 +100,14 @@ class ApplyIn(BaseModel):
     run_id: str
     observation_id: str
     segment_id: str
+
+
+def frame_effect(frame_id: str, result: dict) -> dict:
+    """Adjacent (e.g. highway) cameras may support a visibility slowdown, never a closure."""
+    frame = vision.frames.get(frame_id, {})
+    if frame.get("relation") == "adjacent" and result.get("obstruction_detected"):
+        result = {**result, "obstruction_detected": None}
+    return derive_effect(result, engine.params)
 
 
 # ---------------------------------------------------------------- endpoints
@@ -156,6 +166,58 @@ def frames():
     return vision.public_frames()
 
 
+@app.post("/api/cameras/refresh")
+def cameras_refresh():
+    if not live_cams.key:
+        raise HTTPException(503, "NY511_API_KEY not configured")
+    try:
+        return live_cams.refresh()
+    except Exception as e:
+        raise HTTPException(502, str(e)[:200])
+
+
+@app.get("/api/cameras/nearby")
+def cameras_nearby(radius_m: float = 250):
+    if not live_cams.key:
+        raise HTTPException(503, "NY511_API_KEY not configured")
+    try:
+        return live_cams.nearby(radius_m)
+    except Exception as e:
+        raise HTTPException(502, str(e)[:200])
+
+
+@app.post("/api/frames/upload")
+async def upload_frame(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    source: str = Form(...),
+    segment_id: str = Form(...),
+    relation: Literal["on_segment", "adjacent"] = Form("on_segment"),
+    observed_at: str = Form(""),
+    license_note: str = Form(""),
+):
+    ext = "." + (file.filename or "").rsplit(".", 1)[-1].lower()
+    if ext not in RASTER:
+        raise HTTPException(422, "Upload a JPG, PNG or WEBP image")
+    if segment_id not in engine.net.segments:
+        raise HTTPException(422, "Unknown segment")
+    data = await file.read()
+    if len(data) > 8_000_000:
+        raise HTTPException(413, "Image too large (8 MB max)")
+    frame_id = "UP-" + uuid.uuid4().hex[:6].upper()
+    rel = f"uploads/{frame_id}{ext}"
+    dest = vision.frame_path({"image": rel})
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
+    frame = {"frame_id": frame_id, "camera_id": frame_id, "title": title[:80], "image": rel,
+             "source": source[:120], "license_note": license_note[:200], "observed_at": observed_at or None,
+             "received_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "segment_ids": [segment_id],
+             "relation": relation, "version": int(time.time())}
+    vision.frames[frame_id] = frame
+    save_upload(frame)
+    return frame
+
+
 @app.get("/api/frames/{frame_id}/image")
 def frame_image(frame_id: str):
     f = vision.frames.get(frame_id)
@@ -175,10 +237,13 @@ def analyze(body: AnalyzeIn):
         raise HTTPException(404, "Unknown frame")
     with engine.lock:
         for o in engine.observations.values():
-            if o.get("run_id") == body.run_id and o.get("frame_id") == body.frame_id and o["status"] in ("processing", "done"):
+            if (o.get("run_id") == body.run_id and o.get("frame_id") == body.frame_id
+                    and o.get("frame_version") == vision.frames[body.frame_id].get("version")
+                    and o["status"] in ("processing", "done")):
                 return o
         obs = {"observation_id": "obs-" + uuid.uuid4().hex[:8], "run_id": body.run_id, "frame_id": body.frame_id,
                "status": "processing", "result": None, "applications": [],
+               "frame_version": vision.frames[body.frame_id].get("version"),
                "segment_ids": vision.frames[body.frame_id]["segment_ids"]}
         engine.observations[obs["observation_id"]] = obs
 
@@ -190,7 +255,7 @@ def analyze(body: AnalyzeIn):
                 return
             obs.update(res)
             if res.get("result"):
-                obs["proposed_effect"] = derive_effect(res["result"], engine.params)
+                obs["proposed_effect"] = frame_effect(body.frame_id, res["result"])
 
     executor.submit(work)
     return obs
@@ -218,7 +283,7 @@ def apply(body: ApplyIn):
     if engine.t >= engine.duration:
         raise HTTPException(409, "Run finished; reset the scenario to apply new observations")
     tick = engine.schedule_apply(obs, body.segment_id)
-    return {"apply_tick": tick, "effect": derive_effect(obs["result"], engine.params)}
+    return {"apply_tick": tick, "effect": obs.get("proposed_effect") or frame_effect(obs["frame_id"], obs["result"])}
 
 
 @app.get("/api/voice/{alert_id}")

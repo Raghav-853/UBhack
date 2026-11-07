@@ -13,3 +13,8 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 data/raw/
+
+# Downloaded 511NY camera images (attribution required; not redistributed).
+data/frames/live/
+data/frames/uploads/
+data/frames/uploads.json
