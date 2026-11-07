@@ -86,3 +86,14 @@ ul.log li.service b { color: var(--good); } ul.log li.reroute b { color: #f43f5e
   background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px; padding: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 4px; }
 .viewer-head { display: flex; justify-content: space-between; align-items: center; }
 .viewer video, .viewer img { width: 100%; border-radius: 5px; border: 1px solid var(--line); background: #000; max-height: 300px; object-fit: contain; }
+.proposals { background: #1a1408; border: 1px solid #6b5313; border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+.proposals h3 { color: #fbbf24; }
+.pill { background: #b45309; color: #fff; border-radius: 9px; padding: 0 7px; font-size: 10px; margin-left: 6px; }
+.proposal { border-top: 1px solid #3b2f12; padding: 6px 0; display: flex; flex-direction: column; gap: 4px; }
+.decision { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+button.approve { background: #047857; border-color: #047857; font-weight: 600; }
+button.reject { background: #3f1d1d; border-color: #7f1d1d; }
+.cctv[data-state="pending"] { border-color: #f59e0b; animation: pulse 1.2s infinite; }
+.cctv[data-state="approved"] { border-color: #f43f5e; background: rgba(127, 29, 29, 0.9); }
+.cctv[data-state="processing"] { opacity: 0.7; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); } 50% { box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); } }

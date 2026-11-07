@@ -363,6 +363,7 @@ class Engine:
             self.alerts.clear()
             self.observations = {k: o for k, o in self.observations.items() if o.get("run_id") == self.run_id}
             self.pending_apply = []
+            self.decisions: dict[str, dict] = {}  # dispatcher approve/reject per run
             self.scheduled = sorted(sc.get("scheduled_observations", []), key=lambda e: e["at_s"])
             self._alert_state = {"crit_frac_high": False, "last_alert_t": -1e9}
             self._sample()

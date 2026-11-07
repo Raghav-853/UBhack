@@ -25,9 +25,10 @@ type Props = {
   frames: any[];
   selectedCam: string | null;
   onCameraClick: (id: string) => void;
+  camState: Record<string, string>;
 };
 
-export default function MapPane({ title, accent, network, world, band, env, syncKey, maps, frames, selectedCam, onCameraClick }: Props) {
+export default function MapPane({ title, accent, network, world, band, env, syncKey, maps, frames, selectedCam, onCameraClick, camState }: Props) {
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
   clickRef.current = onCameraClick;
@@ -101,9 +102,10 @@ export default function MapPane({ title, accent, network, world, band, env, sync
       mk.setLngLat(f.lonlat);
       mk.getElement().title = f.title;
       mk.getElement().classList.toggle("sel", f.frame_id === selectedCam);
+      mk.getElement().dataset.state = camState?.[f.frame_id] || "";
     }
     for (const id of Object.keys(camMarkers.current)) if (!seen.has(id)) { camMarkers.current[id].remove(); delete camMarkers.current[id]; }
-  }, [frames, selectedCam]);
+  }, [frames, selectedCam, camState]);
 
   useEffect(() => {
     if (map.current && ready.current) update(map.current, network, { world, band, env }, markers.current);

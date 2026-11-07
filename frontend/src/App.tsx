@@ -47,6 +47,7 @@ export default function App() {
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
   const P = state.policies;
+  const camState = cameraStates(state, frames);
   return (
     <div className="app">
       <Header state={state} err={err} />
@@ -54,17 +55,18 @@ export default function App() {
         <div className="maps">
           <MapPane title="FIXED-ORDER LOOP (comparison)" accent={FIXED} network={network} world={P.fixed}
                    band={state.band} env={state.env} syncKey="fixed" maps={maps}
-                   frames={frames} selectedCam={cam} onCameraClick={setCam} />
+                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
                    band={state.band} env={state.env} syncKey="adaptive" maps={maps}
-                   frames={frames} selectedCam={cam} onCameraClick={setCam} />
+                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <Legend />
           {cam && frames.find((f: any) => f.frame_id === cam) && (
             <CameraViewer state={state} network={network} frame={frames.find((f: any) => f.frame_id === cam)}
-                          onClose={() => setCam(null)} reloadFrames={reloadFrames} />
+                          onClose={() => setCam(null)} />
           )}
         </div>
         <aside className="side">
+          <Proposals state={state} frames={frames} network={network} onOpen={setCam} />
           <Controls state={state} scenarios={scenarios} />
           <Metrics state={state} />
           <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={cam} onSelect={setCam} />
@@ -242,7 +244,7 @@ function Camera({ state, frames, network, reloadFrames, selected, onSelect }: an
         {frames.map((f: any) => (
           <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""} onClick={() => onSelect(f.frame_id)}>
             {f.media_type === "video" ? "🎞" : "📷"} {f.title}<br />
-            <span className="small muted">{f.recorded_at ? "recorded ✓" : f.has_fixture_result ? "fixture" : "not analyzed"}</span>
+            <span className="small muted">{f.media_type === "video" ? "video" : "image"} · {f.source}</span>
           </button>
         ))}
       </div>
@@ -250,36 +252,102 @@ function Camera({ state, frames, network, reloadFrames, selected, onSelect }: an
   );
 }
 
-function CameraViewer({ state, frame, network, onClose, reloadFrames }: any) {
-  const [obs, setObs] = useState<any>(null);
+function cameraStates(state: any, frames: any[]) {
+  const out: Record<string, string> = {};
+  const an: Record<string, any> = {};
+  for (const x of state.camera?.analyses || []) an[x.frame_id] = x;
+  for (const f of frames) {
+    const x = an[f.frame_id];
+    if (!x || x.status === "processing") { out[f.frame_id] = "processing"; continue; }
+    const d = state.camera?.decisions?.[`${f.frame_id}@${x.version}`];
+    const kind = x.proposed_effect?.kind;
+    out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
+  }
+  return out;
+}
+
+const effectText = (eff: any) =>
+  eff?.kind === "closure" ? "close segment → units detour" : eff?.kind === "slowdown" ? `speed ×${eff.factor} on segment` : "no change needed";
+
+function Decision({ state, analysis, frame, network }: any) {
   const [msg, setMsg] = useState<string | null>(null);
+  const d = state.camera?.decisions?.[`${frame.frame_id}@${analysis.version}`];
+  const seg = network.segments.find((x: any) => x.segment_id === frame.segment_ids[0]);
+  const decide = async (decision: string) => {
+    setMsg(null);
+    try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version, decision }); }
+    catch (e: any) { setMsg(e.message); }
+  };
+  if (!analysis.proposed_effect || analysis.proposed_effect.kind === "none") return null;
+  return (
+    <div className="decision">
+      <div className="small">Proposed: <b>{effectText(analysis.proposed_effect)}</b> on {seg?.name || seg?.highway} ({frame.segment_ids[0]})</div>
+      {d ? (
+        <div className={`small ${d.decision === "approve" ? "good" : "muted"}`}>
+          {d.decision === "approve" ? `✔ Approved at ${fmtClock(d.sim_time_s)} — applied to both worlds` : `✖ Rejected at ${fmtClock(d.sim_time_s)}`}
+        </div>
+      ) : (
+        <div className="row">
+          <button className="approve" onClick={() => decide("approve")}>✔ Approve</button>
+          <button className="reject" onClick={() => decide("reject")}>✖ Reject</button>
+        </div>
+      )}
+      {msg && <div className="bad small">{msg}</div>}
+    </div>
+  );
+}
+
+function AnalysisView({ analysis }: any) {
+  const ts = (x: string) => x.slice(0, 16).replace("T", " ") + " UTC";
+  if (!analysis || analysis.status === "processing") return <div className="small muted">⏳ Gemini analyzing automatically…</div>;
+  if (analysis.status === "failed") return <div className="bad small">{analysis.error}</div>;
+  return (
+    <div className="obs">
+      <span className={`tag ${analysis.source_kind}`}>{KIND_LABEL[analysis.source_kind] || analysis.source_kind}</span>
+      <span className="small muted">
+        {analysis.model_id || ""}{analysis.recorded_at ? ` · recorded ${ts(analysis.recorded_at)}` : analysis.analyzed_at ? ` · analyzed ${ts(analysis.analyzed_at)}` : ""}
+      </span>
+      {analysis.note && <span className="small" style={{ color: "#fbbf24" }}>{analysis.note}</span>}
+      <div>Surface <b>{analysis.result.surface_class}</b> · Visibility <b>{analysis.result.visibility_class}</b> · Obstruction <b>{String(analysis.result.obstruction_detected ?? "unknown")}</b></div>
+      <div className="small muted">“{analysis.result.evidence_summary}”</div>
+    </div>
+  );
+}
+
+function Proposals({ state, frames, network, onOpen }: any) {
+  const items = (state.camera?.analyses || [])
+    .filter((a: any) => a.status === "done" && a.proposed_effect && a.proposed_effect.kind !== "none")
+    .map((a: any) => ({ a, f: frames.find((f: any) => f.frame_id === a.frame_id) }))
+    .filter((x: any) => x.f);
+  if (!items.length) return null;
+  const pending = items.filter((x: any) => !state.camera.decisions[`${x.f.frame_id}@${x.a.version}`]).length;
+  return (
+    <section className="proposals">
+      <h3>Camera alerts — dispatcher decision {pending > 0 && <span className="pill">{pending} pending</span>}</h3>
+      {items.map(({ a, f }: any) => (
+        <div key={f.frame_id} className="proposal">
+          <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+            <b>📹 {f.title}</b>
+            <button className="small" onClick={() => onOpen(f.frame_id)}>View</button>
+          </div>
+          <div className="small">
+            <span className={`tag ${a.source_kind}`}>{KIND_LABEL[a.source_kind] || a.source_kind}</span>{" "}
+            {a.result.obstruction_detected ? "Obstruction detected" : `Visibility ${a.result.visibility_class}`} — “{a.result.evidence_summary}”
+          </div>
+          <Decision state={state} analysis={a} frame={f} network={network} />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CameraViewer({ state, frame, network, onClose }: any) {
+  const analysis = (state.camera?.analyses || []).find((a: any) => a.frame_id === frame.frame_id);
   const segName = (sid: string) => {
     const s = network.segments.find((x: any) => x.segment_id === sid);
     return s ? `${s.name || s.highway} (${sid})` : sid;
   };
-  useEffect(() => { setObs(null); setMsg(null); }, [state.run_id, frame.frame_id, frame.version]);
-
-  const analyze = async (mode: string) => {
-    setMsg(null);
-    try {
-      let o = await api("/api/observations/analyze", { run_id: state.run_id, frame_id: frame.frame_id, mode });
-      setObs(o);
-      for (let i = 0; i < 240 && o.status === "processing"; i++) {
-        await new Promise((r) => setTimeout(r, 500));
-        o = await api(`/api/observations/${o.observation_id}`);
-        setObs(o);
-      }
-      reloadFrames();
-    } catch (e: any) { setMsg(e.message); }
-  };
-  const apply = async (sid: string) => {
-    try {
-      const r = await api("/api/observations/apply", { run_id: state.run_id, observation_id: obs.observation_id, segment_id: sid });
-      setMsg(`Accepted → applied to both worlds at tick ${r.apply_tick} (${r.effect.kind}).`);
-    } catch (e: any) { setMsg(e.message); }
-  };
-  const eff = obs?.proposed_effect;
-  const ts = (x: string) => x.slice(0, 16).replace("T", " ") + " UTC";
+  const rerun = () => api(`/api/analyses/${frame.frame_id}/rerun`, {}).catch(() => {});
   return (
     <div className="viewer">
       <div className="viewer-head">
@@ -292,28 +360,10 @@ function CameraViewer({ state, frame, network, onClose, reloadFrames }: any) {
       <div className="small muted">
         {frame.source} · captured {frame.observed_at || "unknown"} · {frame.relation === "adjacent" ? "adjacent camera (visibility only) near" : "views"} {frame.segment_ids.map(segName).join(", ")}
       </div>
-      <div className="row" style={{ marginTop: 6 }}>
-        <button className="primary" onClick={() => analyze("auto")} disabled={obs?.status === "processing"}>
-          {obs?.status === "processing" ? "Gemini analyzing…" : frame.live_capable ? "Analyze with Gemini" : "Analyze"}
-        </button>
-        {frame.recorded_at && <button onClick={() => analyze("replay")} disabled={obs?.status === "processing"}>Replay recorded result</button>}
-      </div>
-      {frame.recorded_at && <div className="small muted">Recorded {frame.recorded_model} result from {ts(frame.recorded_at)}</div>}
-      {obs?.status === "done" && obs.result && (
-        <div className="obs">
-          <span className={`tag ${obs.source_kind}`}>{KIND_LABEL[obs.source_kind] || obs.source_kind}</span>
-          {obs.model_id && <span className="small muted">{obs.model_id}{obs.recorded_at ? ` · recorded ${ts(obs.recorded_at)}` : ""}</span>}
-          {obs.note && <span className="small" style={{ color: "#fbbf24" }}>{obs.note}</span>}
-          <div>Surface <b>{obs.result.surface_class}</b> · Visibility <b>{obs.result.visibility_class}</b> · Obstruction <b>{String(obs.result.obstruction_detected ?? "unknown")}</b></div>
-          <div className="small muted">“{obs.result.evidence_summary}”</div>
-          <div className="small">Proposed: <b>{eff?.kind === "closure" ? "close segment → units detour" : eff?.kind === "slowdown" ? `speed ×${eff.factor} on segment` : "no change needed"}</b></div>
-          {eff && eff.kind !== "none" && frame.segment_ids.map((sid: string) => (
-            <button key={sid} className="primary" onClick={() => apply(sid)}>Dispatcher: accept for {segName(sid)}</button>
-          ))}
-        </div>
-      )}
-      {obs?.status === "failed" && <div className="bad small">{obs.error}</div>}
-      {msg && <div className="small">{msg}</div>}
+      <AnalysisView analysis={analysis} />
+      {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
+      {analysis?.status === "done" && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
+      <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}>↻ Re-analyze</button></div>
     </div>
   );
 }
