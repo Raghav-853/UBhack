@@ -22,11 +22,6 @@ type Props = {
   env: any;
   syncKey: string;
   maps: React.MutableRefObject<Record<string, maplibregl.Map>>;
-<<<<<<< HEAD
-};
-
-export default function MapPane({ title, accent, network, world, band, env, syncKey, maps }: Props) {
-=======
   frames: any[];
   selectedCam: string | null;
   onCameraClick: (id: string) => void;
@@ -37,7 +32,6 @@ export default function MapPane({ title, accent, network, world, band, env, sync
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
   clickRef.current = onCameraClick;
->>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const ready = useRef(false);
@@ -90,8 +84,6 @@ export default function MapPane({ title, accent, network, world, band, env, sync
   }, [network]);
 
   useEffect(() => {
-<<<<<<< HEAD
-=======
     const m = map.current;
     if (!m) return;
     const seen = new Set<string>();
@@ -116,7 +108,6 @@ export default function MapPane({ title, accent, network, world, band, env, sync
   }, [frames, selectedCam, camState]);
 
   useEffect(() => {
->>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
     if (map.current && ready.current) update(map.current, network, { world, band, env }, markers.current);
   }, [world, band, env]);
 

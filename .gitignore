@@ -18,7 +18,4 @@ data/raw/
 data/frames/live/
 data/frames/uploads/
 data/frames/uploads.json
-<<<<<<< HEAD
-=======
 frontend/*.tsbuildinfo
->>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
