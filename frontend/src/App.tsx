@@ -25,6 +25,10 @@ export default function App() {
   const [frames, setFrames] = useState<any[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const maps = useRef<Record<string, any>>({});
+<<<<<<< HEAD
+=======
+  const [cam, setCam] = useState<string | null>(null);
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
 
   useEffect(() => {
     api("/api/network").then(setNetwork).catch((e) => setErr(String(e)));
@@ -46,12 +50,17 @@ export default function App() {
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
   const P = state.policies;
+<<<<<<< HEAD
+=======
+  const camState = cameraStates(state, frames);
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
   return (
     <div className="app">
       <Header state={state} err={err} />
       <div className="body">
         <div className="maps">
           <MapPane title="FIXED-ORDER LOOP (comparison)" accent={FIXED} network={network} world={P.fixed}
+<<<<<<< HEAD
                    band={state.band} env={state.env} syncKey="fixed" maps={maps} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
                    band={state.band} env={state.env} syncKey="adaptive" maps={maps} />
@@ -61,6 +70,24 @@ export default function App() {
           <Controls state={state} scenarios={scenarios} />
           <Metrics state={state} />
           <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} />
+=======
+                   band={state.band} env={state.env} syncKey="fixed" maps={maps}
+                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
+          <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
+                   band={state.band} env={state.env} syncKey="adaptive" maps={maps}
+                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
+          <Legend />
+          {cam && frames.find((f: any) => f.frame_id === cam) && (
+            <CameraViewer state={state} network={network} frame={frames.find((f: any) => f.frame_id === cam)}
+                          onClose={() => setCam(null)} />
+          )}
+        </div>
+        <aside className="side">
+          <Proposals state={state} frames={frames} network={network} onOpen={setCam} />
+          <Controls state={state} scenarios={scenarios} />
+          <Metrics state={state} />
+          <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={cam} onSelect={setCam} />
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
           <Log state={state} />
         </aside>
       </div>
@@ -204,9 +231,19 @@ function Metrics({ state }: any) {
   );
 }
 
+<<<<<<< HEAD
 function Camera({ state, frames, network, reloadFrames }: any) {
   const [sel, setSel] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+=======
+const KIND_LABEL: Record<string, string> = {
+  live_inference: "LIVE GEMINI", recorded_inference: "RECORDED GEMINI RESULT", synthetic_fixture: "SYNTHETIC FIXTURE",
+};
+
+function Camera({ state, frames, network, reloadFrames, selected, onSelect }: any) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
   const ny = state.integrations.ny511;
   const refresh511 = async () => {
     setRefreshing(true); setMsg(null);
@@ -215,6 +252,7 @@ function Camera({ state, frames, network, reloadFrames }: any) {
     finally { setRefreshing(false); }
   };
   const ago = (ts: number | null) => ts ? `${Math.round((Date.now() / 1000 - ts) / 60)} min ago` : "never";
+<<<<<<< HEAD
   const [obs, setObs] = useState<any>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const frame = frames.find((f: any) => f.frame_id === sel);
@@ -248,10 +286,16 @@ function Camera({ state, frames, network, reloadFrames }: any) {
   return (
     <section>
       <h3>Camera observations → dispatch</h3>
+=======
+  return (
+    <section>
+      <h3>Road cameras (click 📹 on the map)</h3>
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
       <div className="row small" style={{ alignItems: "center" }}>
         <button onClick={refresh511} disabled={!ny.configured || refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh 511NY"}</button>
         <span className="muted">
           {ny.configured ? `auto every ${Math.round(ny.interval_s / 60)} min · last ${ago(ny.last_refresh)}${ny.last_error ? " · " + ny.last_error : ""}`
+<<<<<<< HEAD
                          : "511NY key not configured — showing stored frames"}
         </span>
       </div>
@@ -290,10 +334,144 @@ function Camera({ state, frames, network, reloadFrames }: any) {
           {msg && <div className="small">{msg}</div>}
         </div>
       )}
+=======
+                         : "511NY key not configured — showing stored media"}
+        </span>
+      </div>
+      {msg && <div className="small">{msg}</div>}
+      <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); onSelect(f.frame_id); }} />
+      <div className="thumbs">
+        {frames.map((f: any) => (
+          <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""} onClick={() => onSelect(f.frame_id)}>
+            {f.media_type === "video" ? "🎞" : "📷"} {f.title}<br />
+            <span className="small muted">{f.media_type === "video" ? "video" : "image"} · {f.source}</span>
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
 
+function cameraStates(state: any, frames: any[]) {
+  const out: Record<string, string> = {};
+  const an: Record<string, any> = {};
+  for (const x of state.camera?.analyses || []) an[x.frame_id] = x;
+  for (const f of frames) {
+    const x = an[f.frame_id];
+    if (!x || x.status === "processing") { out[f.frame_id] = "processing"; continue; }
+    const d = state.camera?.decisions?.[`${f.frame_id}@${x.version}`];
+    const kind = x.proposed_effect?.kind;
+    out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
+  }
+  return out;
+}
+
+const effectText = (eff: any) =>
+  eff?.kind === "closure" ? "close segment → units detour" : eff?.kind === "slowdown" ? `speed ×${eff.factor} on segment` : "no change needed";
+
+function Decision({ state, analysis, frame, network }: any) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const d = state.camera?.decisions?.[`${frame.frame_id}@${analysis.version}`];
+  const seg = network.segments.find((x: any) => x.segment_id === frame.segment_ids[0]);
+  const decide = async (decision: string) => {
+    setMsg(null);
+    try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version, decision }); }
+    catch (e: any) { setMsg(e.message); }
+  };
+  if (!analysis.proposed_effect || analysis.proposed_effect.kind === "none") return null;
+  return (
+    <div className="decision">
+      <div className="small">Proposed: <b>{effectText(analysis.proposed_effect)}</b> on {seg?.name || seg?.highway} ({frame.segment_ids[0]})</div>
+      {d ? (
+        <div className={`small ${d.decision === "approve" ? "good" : "muted"}`}>
+          {d.decision === "approve" ? `✔ Approved at ${fmtClock(d.sim_time_s)} — applied to both worlds` : `✖ Rejected at ${fmtClock(d.sim_time_s)}`}
+        </div>
+      ) : (
+        <div className="row">
+          <button className="approve" onClick={() => decide("approve")}>✔ Approve</button>
+          <button className="reject" onClick={() => decide("reject")}>✖ Reject</button>
+        </div>
+      )}
+      {msg && <div className="bad small">{msg}</div>}
+    </div>
+  );
+}
+
+function AnalysisView({ analysis }: any) {
+  const ts = (x: string) => x.slice(0, 16).replace("T", " ") + " UTC";
+  if (!analysis || analysis.status === "processing") return <div className="small muted">⏳ Gemini analyzing automatically…</div>;
+  if (analysis.status === "failed") return <div className="bad small">{analysis.error}</div>;
+  return (
+    <div className="obs">
+      <span className={`tag ${analysis.source_kind}`}>{KIND_LABEL[analysis.source_kind] || analysis.source_kind}</span>
+      <span className="small muted">
+        {analysis.model_id || ""}{analysis.recorded_at ? ` · recorded ${ts(analysis.recorded_at)}` : analysis.analyzed_at ? ` · analyzed ${ts(analysis.analyzed_at)}` : ""}
+      </span>
+      {analysis.note && <span className="small" style={{ color: "#fbbf24" }}>{analysis.note}</span>}
+      <div>Surface <b>{analysis.result.surface_class}</b> · Visibility <b>{analysis.result.visibility_class}</b> · Obstruction <b>{String(analysis.result.obstruction_detected ?? "unknown")}</b></div>
+      <div className="small muted">“{analysis.result.evidence_summary}”</div>
+    </div>
+  );
+}
+
+function Proposals({ state, frames, network, onOpen }: any) {
+  const items = (state.camera?.analyses || [])
+    .filter((a: any) => a.status === "done" && a.proposed_effect && a.proposed_effect.kind !== "none")
+    .map((a: any) => ({ a, f: frames.find((f: any) => f.frame_id === a.frame_id) }))
+    .filter((x: any) => x.f);
+  if (!items.length) return null;
+  const pending = items.filter((x: any) => !state.camera.decisions[`${x.f.frame_id}@${x.a.version}`]).length;
+  return (
+    <section className="proposals">
+      <h3>Camera alerts — dispatcher decision {pending > 0 && <span className="pill">{pending} pending</span>}</h3>
+      {items.map(({ a, f }: any) => (
+        <div key={f.frame_id} className="proposal">
+          <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+            <b>📹 {f.title}</b>
+            <button className="small" onClick={() => onOpen(f.frame_id)}>View</button>
+          </div>
+          <div className="small">
+            <span className={`tag ${a.source_kind}`}>{KIND_LABEL[a.source_kind] || a.source_kind}</span>{" "}
+            {a.result.obstruction_detected ? "Obstruction detected" : `Visibility ${a.result.visibility_class}`} — “{a.result.evidence_summary}”
+          </div>
+          <Decision state={state} analysis={a} frame={f} network={network} />
+        </div>
+      ))}
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
+    </section>
+  );
+}
+
+<<<<<<< HEAD
+=======
+function CameraViewer({ state, frame, network, onClose }: any) {
+  const analysis = (state.camera?.analyses || []).find((a: any) => a.frame_id === frame.frame_id);
+  const segName = (sid: string) => {
+    const s = network.segments.find((x: any) => x.segment_id === sid);
+    return s ? `${s.name || s.highway} (${sid})` : sid;
+  };
+  const rerun = () => api(`/api/analyses/${frame.frame_id}/rerun`, {}).catch(() => {});
+  return (
+    <div className="viewer">
+      <div className="viewer-head">
+        <b>📹 {frame.title}</b>
+        <button onClick={onClose}>✕</button>
+      </div>
+      {frame.media_type === "video"
+        ? <video key={frame.media_url} src={frame.media_url} autoPlay muted loop playsInline controls />
+        : <img src={frame.media_url} alt={frame.title} />}
+      <div className="small muted">
+        {frame.source} · captured {frame.observed_at || "unknown"} · {frame.relation === "adjacent" ? "adjacent camera (visibility only) near" : "views"} {frame.segment_ids.map(segName).join(", ")}
+      </div>
+      <AnalysisView analysis={analysis} />
+      {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
+      {analysis?.status === "done" && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
+      <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}>↻ Re-analyze</button></div>
+    </div>
+  );
+}
+
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
 const SOURCES = ["511NY capture (NYSDOT)", "NITTEC capture", "BTPM Live Roof Cam", "Team photo", "Other"];
 
 function AddFrame({ network, onAdded }: any) {
@@ -318,10 +496,17 @@ function AddFrame({ network, onAdded }: any) {
     setMsg(null); setOpen(false); setFile(null); setTitle("");
     onAdded(j);
   };
+<<<<<<< HEAD
   if (!open) return <button className="small" onClick={() => setOpen(true)} style={{ marginBottom: 6 }}>＋ Add camera frame (any source)</button>;
   return (
     <div className="addframe">
       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+=======
+  if (!open) return <button className="small" onClick={() => setOpen(true)} style={{ marginBottom: 6 }}>＋ Add camera image/video (any source)</button>;
+  return (
+    <div className="addframe">
+      <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+>>>>>>> 51dc4ae764c073942da161873c9bd977bc89f613
       <input placeholder="Title (e.g. NY 33 at Grider St)" value={title} onChange={(e) => setTitle(e.target.value)} />
       <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
       <label className="small muted">Capture time (local) <input type="datetime-local" value={observed} onChange={(e) => setObserved(e.target.value)} /></label>
