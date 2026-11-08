@@ -1,5 +1,7 @@
 # SnowTwin WNY — Handoff (City Snow Plan baselines, experiment variables, snow contours)
 
+> **Newer handoff:** [HANDOFF_SNOWBULL.md](HANDOFF_SNOWBULL.md) (2026-11-08: learned forecast, demo scenario, dashboard, display-only map tweaks). The results numbers below predate it.
+
 **As of:** 2026-11-07 ~20:15 ET · code through `61c0a3f` · builds on YoungJun's NWS/storm-model work (`e072d77`).
 **Read with:** [MASTER_EXECUTION_PLAN.md](MASTER_EXECUTION_PLAN.md), [IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md](IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md), [WEATHER_HANDOFF.md](WEATHER_HANDOFF.md).
 **Primary source:** City of Buffalo DPW Winter Snow Plan 2026-27 — [Docs/sources/Buffalo_Winter_Snow_Plan_2026-27.pdf](sources/Buffalo_Winter_Snow_Plan_2026-27.pdf).
