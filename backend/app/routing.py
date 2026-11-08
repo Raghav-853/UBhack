@@ -85,21 +85,17 @@ def choose_fixed(world: "World", vehicle: "Vehicle", t: float, dist: dict):
     return _choose_fixed_loop(world, vehicle, t, dist)
 
 
-def _city_key(seg):
-    # Published order by tier; within a tier the route order is a north-to-south sweep (assumption).
-    return (seg.tier, -seg.mid[1], seg.mid[0], seg.id)
-
-
 def _choose_city_priority(world, vehicle, t, dist):
-    """Always serve the highest published tier that needs work (static rule; no storm look-ahead)."""
+    """Serve the highest published tier that needs work; within a tier take the nearest segment, the way a
+    crew works contiguously along its route instead of jumping across the corridor. No storm look-ahead."""
     cands = _candidates(world, vehicle, t, dist)
     if not cands:
         return None, None
-    c = min(cands, key=lambda c: _city_key(world.net.segments[c[0]]))
+    c = min(cands, key=lambda c: (world.net.segments[c[0]].tier, c[3], c[0]))
     seg = world.net.segments[c[0]]
     return c, {
         "policy": "fixed", "baseline": "city_priority",
-        "reason": f"Published priority: {seg.city_class.replace('_', ' ')} (tier {seg.tier}) first, then route order",
+        "reason": f"Published priority: {seg.city_class.replace('_', ' ')} (tier {seg.tier}) first, nearest within tier",
         "depth_in": round(world.depth[c[0]], 2), "critical": seg.critical, "tier": seg.tier,
         "travel_s": round(c[3]), "service_s": round(c[4]),
     }
@@ -112,8 +108,9 @@ def _choose_service_history(world, vehicle, t, dist):
         return None, None
 
     def key(c):
+        # Oldest service first in 30-minute bins (a tracker shows coarse age), then nearest.
         last = world.last_service[c[0]]
-        return (-1e12 if last is None else last, world.net.segments[c[0]].tier, c[3], c[0])
+        return (-1 if last is None else int(last // 1800), c[3], c[0])
 
     c = min(cands, key=key)
     seg, last = world.net.segments[c[0]], world.last_service[c[0]]
