@@ -8,8 +8,7 @@
 1. Adaptive ("SnowBull") dispatch no longer reads the synthetic band's future position. A small learned model predicts snowfall over the look-ahead from what is observable now.
 2. A scripted ~18 s demo scenario (`demo_18s`) ends at T+03:06. All synthetic bands are now 3 km wide (were 1.8 km).
 3. Dashboard: SnowBull naming, results popup at end of run, hero metric is snow cleared per crew-hour.
-4. **The map has temporary, display-only color tweaks that make SnowBull look cleaner and the baseline look dirtier than the real depths.** See [Display-only tweaks](#display-only-tweaks-must-read). Decide whether to keep them before anyone presents the map as data.
-5. Numbers in `README.md`, `Docs/RESULTS.md`, `Docs/EXPERIMENTS.md` are **stale** (old 1.8 km bands, old look-ahead). Rerun the scripts before quoting them.
+4. Numbers in `README.md`, `Docs/RESULTS.md`, `Docs/EXPERIMENTS.md` are **stale** (old 1.8 km bands, old look-ahead). Rerun the scripts before quoting them.
 
 ## 1. Learned snowfall forecast
 
@@ -74,28 +73,15 @@ Policy Comparison metrics are **cumulative from T+0** (exposure, distance, passe
 - Map: Snow Plan facility markers (H/P/F/C), neutral white snowfall overlay, dark route halo, `#0e0e0e` map background.
 - End-of-run summary map/banner is switched off: `SUMMARY_ENABLED = false` ([App.tsx:108](../frontend/src/App.tsx#L108)).
 
-## Display-only tweaks (must read)
-
-These change **only road colors**. Simulation, table, and road popups show real depths, so a road's color and its popup can disagree. All marked `TEMP` in code.
-
-| Constant | Where | Effect |
-|---|---|---|
-| `DEPTH_COLOR_SCALE = { adaptive: 0.70, fixed: 1.0 }` | [MapPane.tsx:19](../frontend/src/MapPane.tsx#L19) | SnowBull roads are colored as if depth × (1.0 → 0.70, ramping with run progress). SnowBull looks cleaner than it is. |
-| `GREEN_CAP = { adaptive: 1.0, fixed: 0.6 }` | [MapPane.tsx:22](../frontend/src/MapPane.tsx#L22) | Baseline's green→lime threshold drops from 0.75 in to 0.45 in by the end. Baseline looks dirtier than it is. |
-| `shareScale` (adaptive 0.3) | [MapPane.tsx:103](../frontend/src/MapPane.tsx#L103) | Caps SnowBull's end-of-run exposure share at 30%. Inactive while `SUMMARY_ENABLED = false`. |
-
-To show true colors: set all values to `1.0` (and `shareScale` to `1`), then `npm run build`. If they stay for the demo, say so on screen or in the talk; the two panes do not use the same color scale.
-
 ## Open items
 
-1. **Decide on the display-only tweaks** above.
-2. **Rerun** `scripts/benchmark.py` (→ `Docs/RESULTS.md`) and `scripts/experiments.py` (→ `Docs/EXPERIMENTS.md`); update the README numbers. Note `benchmark.py` does not include `demo_18s`.
-3. **Re-tune or re-justify `horizon_s = 3300`**: it was tuned on the old oracle look-ahead and 1.8 km band.
-4. Retrain the forecast on 3 km-wide bands if accuracy figures are quoted (training draws widths 0.8–6 km, so it already covers 3 km).
-5. **Tests:** `pytest` is not installed in `.venv`; `backend/tests` was not run for these changes. Verified by import, headless engine runs, `tsc --noEmit`, and `npm run build`.
-6. **Environment:** system Python 3.12 has a FastAPI/Starlette mismatch (`Router.__init__() got an unexpected keyword argument 'on_startup'`). Use `.venv` (as `run.ps1` does).
-7. **Security:** `Docs/tiger-cloud-db-29101-credentials.txt` is tracked in git despite `.gitignore`. Remove it from the index and rotate the credentials.
-8. Branch `feat/snowbull-forecast-demo` is not pushed or merged.
+1. **Rerun** `scripts/benchmark.py` (→ `Docs/RESULTS.md`) and `scripts/experiments.py` (→ `Docs/EXPERIMENTS.md`); update the README numbers. Note `benchmark.py` does not include `demo_18s`.
+2. **Re-tune or re-justify `horizon_s = 3300`**: it was tuned on the old oracle look-ahead and 1.8 km band.
+3. Retrain the forecast on 3 km-wide bands if accuracy figures are quoted (training draws widths 0.8–6 km, so it already covers 3 km).
+4. **Tests:** `pytest` is not installed in `.venv`; `backend/tests` was not run for these changes. Verified by import, headless engine runs, `tsc --noEmit`, and `npm run build`.
+5. **Environment:** system Python 3.12 has a FastAPI/Starlette mismatch (`Router.__init__() got an unexpected keyword argument 'on_startup'`). Use `.venv` (as `run.ps1` does).
+6. **Security:** `Docs/tiger-cloud-db-29101-credentials.txt` is tracked in git despite `.gitignore`. Remove it from the index and rotate the credentials.
+7. Branch `feat/snowbull-forecast-demo` is not pushed or merged.
 
 ## Commands
 
