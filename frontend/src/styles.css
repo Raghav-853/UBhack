@@ -861,19 +861,19 @@ header.command-bar {
 
 /* ---- Right Operations Console Sidebar (#FFFFFF + #123461 + #07397c) ---- */
 aside.side {
-  width: 420px;
-  flex: 0 0 420px;
+  width: 400px;
+  flex: 0 0 400px;
   display: flex;
   flex-direction: column;
   background: var(--white);
   border-left: 2px solid var(--navy);
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 section {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
+  padding: 16px 16px;
+  border-bottom: none;
   background: var(--white);
 }
 
@@ -1048,7 +1048,7 @@ table.metrics {
 }
 
 .metrics td {
-  padding: 5px 6px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--line);
   text-align: right;
   color: var(--navy);
