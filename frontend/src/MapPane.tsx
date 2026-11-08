@@ -219,20 +219,7 @@ export default function MapPane({
           </div>
         )}
       </div>
-      <div className="map-canvas-wrap">
-        <div ref={el} className="map" />
-        {world?.vehicles?.length > 0 && (
-          <div className="map-fleet-hud" aria-label={`${title} active units`}>
-            {world.vehicles.map((v: any) => (
-              <div key={v.vehicle_id} className={`hud-unit status-${v.status}`} title={v.explanation?.reason || v.label}>
-                <span className={`hud-unit-id ${v.type || ""}`}>{v.vehicle_id}</span>
-                <span className="hud-unit-status">{v.status}</span>
-                <span className="hud-unit-target">{v.explanation?.target_name || "Standby"}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <div ref={el} className="map" />
     </div>
   );
 }
