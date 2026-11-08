@@ -266,10 +266,13 @@ observed_at: timestamp or unknown
 surface_class: dry | wet | snow_covered | unknown
 visibility_class: good | reduced | poor | unknown
 obstruction_detected: true | false | unknown
+snow_depth_cm: required best-effort numeric AI estimate for fresh demo analyses
+depth_confidence_pct: required self-reported, uncalibrated 0–100 for fresh demo analyses
+video samples: offset_s at 0, 5, 10, ... with separate results
 evidence_summary, model_id, received_at
 ```
 
-An image classification does not supply calibrated inches of snow. Keep depth in the physical model. Treat apparent disagreement between image and model as a discrepancy flag. Provider confidence, if included, is self-reported and is not a validated accuracy score.
+An image classification does not supply calibrated snow depth. For the approved demo, request a best-effort numeric Gemini estimate in centimeters and self-reported confidence for every sample, clearly labeled uncalibrated. When visual evidence is weak or absent, the explanation must disclose assumptions and confidence should be low or zero. Supplied scene/weather context is background, not measured road depth. Keep estimates separate from physical-model depth and do not overwrite simulated inches with them. Treat apparent disagreement as a discrepancy flag. Confidence is not a validated accuracy score. Use 5-second video samples synchronized to playback, including after seeking/looping, with sample-specific approval and an info button for Gemini's explanation. Preserve older recordings; do not fabricate absent values locally or describe assumption-based estimates as observed measurements.
 
 **Required AI proof:** identifiable archived media produces a validated observation; an operator applies a supported candidate event through the acceptance endpoint; a bounded physical/planning consequence becomes visible. Select one path at the early input-feasibility gate: (a) an observed obstacle supports a simulated closure and model-feasible detour/reassignment, or (b) observed reduced visibility applies a configured conservative speed penalty to the mapped segments, updating travel time and assignment costs. The penalty is a scenario assumption, not a measured speed estimate. Apply the same accepted event to both policy worlds at the same simulated tick. The fixed policy still handles the changed constraints while preserving its work order.
 

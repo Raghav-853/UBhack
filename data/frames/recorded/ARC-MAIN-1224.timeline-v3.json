@@ -1,0 +1,97 @@
+{
+  "frame_id": "ARC-MAIN-1224",
+  "media": "main-st-cold-spring-20221224.webm",
+  "media_sha1": "8693ec04678e63dd",
+  "model_id": "gemini-3.5-flash-lite",
+  "recorded_at": "2026-11-08T02:37:51.157287+00:00",
+  "source_kind": "recorded_inference",
+  "analysis_schema_version": 3,
+  "result": {
+    "surface_class": "snow_covered",
+    "visibility_class": "poor",
+    "obstruction_detected": false,
+    "snow_depth_cm": 15.0,
+    "depth_confidence_pct": 50.0,
+    "evidence_summary": "Sidewalk and street are snow-covered. Heavy blowing snow and whiteout conditions cause poor visibility.",
+    "samples": [
+      {
+        "offset_s": 0,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Sidewalk and street are snow-covered. Heavy blowing snow and whiteout conditions cause poor visibility."
+        }
+      },
+      {
+        "offset_s": 5,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Blowing snow continues with poor visibility. Street and sidewalks remain snow-covered."
+        }
+      },
+      {
+        "offset_s": 10,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 40.0,
+          "evidence_summary": "Camera pans toward background showing a snow-covered street and distant vehicles obscured by blowing snow."
+        }
+      },
+      {
+        "offset_s": 15,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Camera pans back to street level sidewalk view. Snow-covered surface and very poor visibility due to blizzard conditions."
+        }
+      },
+      {
+        "offset_s": 20,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Continued snow-covered sidewalk and road surface with heavily reduced visibility from blowing snow."
+        }
+      },
+      {
+        "offset_s": 25,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Consistent winter storm conditions with snow-packed surfaces and poor visibility."
+        }
+      },
+      {
+        "offset_s": 30,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 15.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "Final frame shows persistent blizzard conditions, snow-covered ground, and poor visibility."
+        }
+      }
+    ],
+    "sample_interval_s": 5
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "note": "Historical context for the archived Dec 2022 clips. Snowfall (new snow over a calendar day) and snow depth (on the ground at a report time) are different measurements; none of these is road-surface depth at the camera, and none is fed to the model or the simulation.",
+  "note": "Historical context for the archived Dec 2022 clips. Snowfall (new snow over a calendar day) and snow depth (on the ground at a report time) are different measurements; none of these is road-surface depth at the camera. Matching-date observations are supplied as background for new Gemini analyses, never assigned directly to the simulation. Older saved analyses predate this context.",
   "rows": [
     {"date": "2022-12-23", "kind": "daily_snowfall", "station": "Buffalo airport (BUF)", "value_in": 22.3,
      "when": "calendar day", "use": "Historical snowfall context; not road depth or snow accumulated by an earlier frame time",

@@ -17,9 +17,12 @@ Requires Python 3.12 (`py -3.12`) and Node 18+.
 
 Optional keys go in `.env.local` (see `.env.example`). Without them:
 
+The backend also reads `.env` and `.env.download` as fallbacks. Existing process environment values
+take precedence, followed by `.env.local`, `.env`, then `.env.download`. These files remain Git-ignored.
+
 | Integration | With key | Without key |
 |---|---|---|
-| Gemini | Automatic analysis of each camera video/image (`GEMINI_MODEL`, falls back to `GEMINI_FALLBACK_MODEL`); every live result is saved in `data/frames/recorded/`. On restart the saved result for the same media is reused (no model call); **↻ Re-analyze** forces a live call | Saved result replayed, labeled **RECORDED GEMINI RESULT** |
+| Gemini | Analyze each unchanged video once and save the result in `data/frames/recorded/`. Playback, resets, restarts, and **Use saved analysis** reuse that result. A primary-model 429 switches to Flash-Lite; exhausted models are skipped | Saved result replayed, labeled **RECORDED GEMINI RESULT** |
 | Tiger Data | Checkpoints + segment telemetry written to TimescaleDB; history endpoints work | Simulation runs in memory only |
 | ElevenLabs | Generated dispatch audio | Text alerts (browser TTS fallback) |
 
@@ -77,6 +80,39 @@ See [the weather handoff](Docs/WEATHER_HANDOFF.md) for the data flow, verificati
 - Local only: dashboard -> Road cameras -> **＋ Add camera image/video** (uploads are git-ignored).
 - Gemini analyzes new media automatically; the dispatcher only approves or rejects the proposal.
 
+### Camera analysis popup
+
+Open a camera marker or camera alert to see the video popup. Inside that card, the Gemini analysis
+pane sits to the left of the video, starts expanded, and can collapse to a camera-icon rail.
+The pane shows snow depth in centimeters, self-reported confidence, visibility, and obstruction. The info button
+opens Gemini's descriptive explanation. Depth/confidence are **experimental, uncalibrated visual
+estimates**, separate from the physical model's road depth. Fresh demo analyses require Gemini to
+return a best-effort numeric depth and numeric confidence, including low/zero confidence when the
+view is uncertain. The explanation identifies assumptions; missing results and older recordings
+still display unavailable rather than locally fabricated numbers.
+
+Video requests use [Gemini video understanding](https://ai.google.dev/gemini-api/docs/video-understanding)
+with default video decoding and request separate observations at 0, 5, 10, ... seconds.
+The provider receives a simplified JSON schema; numeric bounds and timestamp cadence are validated locally.
+The saved timeline follows the video player
+through playback, seeking, and looping without making new requests on each loop. Approvals bind to the
+specific displayed sample. These observations do not automatically overwrite modeled snow depth.
+
+New results are saved as `data/frames/recorded/<frame_id>.timeline-v3.json`; older timeline and whole-clip recordings
+are preserved. Startup reuses saved recordings without making calls to upgrade their schema. Older
+results remain labeled clip summaries, with no invented depth or confidence. **Use saved analysis**
+does not force a new call. New media can be analyzed once with a configured key and available quota;
+concurrent requests are deduplicated, failures are remembered for the session, and automatic SDK
+retries are disabled. A 429 disables that model for the session and tries the configured fallback
+once. If both models reach their limit, provider calls stop for the session. Missing timestamps
+display unavailable rather than another frame's estimate.
+
+New Gemini requests receive the registered capture date and matching historical observations from
+`data/weather/dec2022_context.json` as background. Today's forecast is not used to explain 2022 footage.
+Weather totals are not street-depth measurements. Older saved summaries contain no numerical depth;
+the popup labels that condition **No saved estimate** rather than suggesting the model returned a
+new judgment that depth is impossible to estimate.
+
 ## Modeling assumptions (shared by both policies)
 
 - Synthetic scenarios sample the modeled snowfall field at each segment midpoint. NWS runs use the forecast of the grid cell containing the midpoint.
@@ -85,7 +121,7 @@ See [the weather handoff](Docs/WEATHER_HANDOFF.md) for the data flow, verificati
 - Bidirectional travel is an MVP simplification; one-way and turn restrictions are not modeled.
 - A vehicle already inside a newly closed segment continues to the next node, then replans.
 - Critical corridor = Main Street plus wide roads within 450 m of ECMC/BNMC (a modeled designation).
-- Adaptive policy uses a 30-minute look-ahead from the active scenario's snowfall source.
+- Adaptive defaults use a 55-minute look-ahead and a `1+0` critical-road multiplier (1×; road-tier priorities still apply), selected for the moving-band demo across all ten dashboard metrics. The exposure threshold remains 1.5 in. These gains apply to the six-hour endpoint, with tradeoffs at earlier checkpoints. The 553 paired comparisons are in [demo_parameter_sweep.csv](Docs/demo_parameter_sweep.csv), generated by `scripts/demo_parameter_sweep.py`; these defaults are scenario-specific tuning.
 - The fixed policy is the team's comparison loop, not a reconstruction of the City of Buffalo's dispatch.
 
 Road data (c) OpenStreetMap contributors (ODbL). Basemap (c) CARTO.

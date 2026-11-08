@@ -1,0 +1,64 @@
+{
+  "frame_id": "ARC-LAUREL-1223",
+  "media": "laurel-st-20221223.webm",
+  "media_sha1": "9eafa0d7cde41c61",
+  "model_id": "gemini-3.5-flash-lite",
+  "recorded_at": "2026-11-08T02:33:13.976528+00:00",
+  "source_kind": "recorded_inference",
+  "analysis_schema_version": 3,
+  "result": {
+    "surface_class": "snow_covered",
+    "visibility_class": "poor",
+    "obstruction_detected": false,
+    "snow_depth_cm": 25.0,
+    "depth_confidence_pct": 20.0,
+    "evidence_summary": "At 0 seconds, the street and surrounding environment are heavily covered in snow. Visibility is very poor due to blowing snow and heavy winter conditions. There are no obvious lane obstructions visible. Snow depth is estimated based on general scene context and heavy accumulation.",
+    "samples": [
+      {
+        "offset_s": 0,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 20.0,
+          "evidence_summary": "At 0 seconds, the street and surrounding environment are heavily covered in snow. Visibility is very poor due to blowing snow and heavy winter conditions. There are no obvious lane obstructions visible. Snow depth is estimated based on general scene context and heavy accumulation."
+        }
+      },
+      {
+        "offset_s": 5,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 20.0,
+          "evidence_summary": "At 5 seconds, the camera pans to the right showing a street light through heavy blowing snow and blizzard-like conditions. The road surface appears deeply snow-covered with no vehicles blocking the visible lanes."
+        }
+      },
+      {
+        "offset_s": 10,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 20.0,
+          "evidence_summary": "At 10 seconds, the camera continues panning across the snowy landscape and parked vehicles. Visibility remains very poor due to intense blowing snow. The road surface is obscured by deep snow."
+        }
+      },
+      {
+        "offset_s": 15,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "poor",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 20.0,
+          "evidence_summary": "At 15 seconds, the camera finishes its pan showing more snow-covered terrain and bare trees under severe visibility restrictions. The street surface remains heavily covered in snow."
+        }
+      }
+    ],
+    "sample_interval_s": 5
+  }
+}

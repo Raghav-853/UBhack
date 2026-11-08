@@ -3,6 +3,7 @@
   "frames": [
     {
       "frame_id": "ARC-MAIN-1224",
+      "duration_s": 33.683,
       "camera_id": "commons:Main_Street_in_Cold_Spring_20221224_01",
       "title": "Main St, Cold Spring (Dec 24, 2022)",
       "media": "clips/main-st-cold-spring-20221224.webm",
@@ -20,6 +21,7 @@
     },
     {
       "frame_id": "ARC-LAUREL-1223",
+      "duration_s": 16.403,
       "camera_id": "commons:Laurel_Street_20221223_02",
       "title": "Laurel St (Dec 23, 2022, evening)",
       "media": "clips/laurel-st-20221223.webm",
@@ -37,6 +39,7 @@
     },
     {
       "frame_id": "ARC-LAUREL-1224",
+      "duration_s": 20.443,
       "camera_id": "commons:Laurel_Street_20221224_02",
       "title": "Laurel St (Dec 24, 2022, morning)",
       "media": "clips/laurel-st-20221224.webm",

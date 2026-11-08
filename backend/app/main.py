@@ -23,6 +23,7 @@ from .network import ROOT
 
 load_dotenv(ROOT / ".env.local", override=False, interpolate=False)
 load_dotenv(ROOT / ".env", override=False, interpolate=False)
+load_dotenv(ROOT / ".env.download", override=False, interpolate=False)
 
 from .cameras import LiveCameras  # noqa: E402
 from .nws import NWS_SCENARIO_ID, ForecastUnavailable, fetch_forecast  # noqa: E402
@@ -125,11 +126,10 @@ async def lifespan(app: FastAPI):
 
 
 # ------------------------------------------------- automatic camera analysis
-# Every camera image/video is analyzed once per media version (upload, 511NY refresh, startup).
+# Changed camera media is analyzed once; unchanged content reuses saved/session results.
 # The dispatcher only approves or rejects the proposed effect.
 analyses: dict[str, dict] = {}
 _inflight: set[str] = set()
-_force_live: set[str] = set()  # frames whose next analysis must call the model (Re-analyze)
 
 
 def _auto_analyze_loop():
@@ -140,8 +140,7 @@ def _auto_analyze_loop():
             if (a is None or a.get("version") != v) and fid not in _inflight:
                 _inflight.add(fid)
                 analyses[fid] = {"frame_id": fid, "version": v, "status": "processing"}
-                executor.submit(_do_analyze, fid, v, "auto" if fid in _force_live else "cached")
-                _force_live.discard(fid)
+                executor.submit(_do_analyze, fid, v, "cached")
         time.sleep(3)
 
 
@@ -155,6 +154,8 @@ def _do_analyze(fid: str, v: int, mode: str = "cached"):
     res.update(frame_id=fid, version=v, analyzed_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     if res.get("result"):
         res["proposed_effect"] = frame_effect(fid, res["result"])
+        for sample in res["result"].get("samples", []):
+            sample["proposed_effect"] = frame_effect(fid, sample["result"])
     if fid in vision.frames and vision.frames[fid].get("version", 0) == v:
         analyses[fid] = res
 
@@ -267,6 +268,7 @@ class DecideIn(BaseModel):
     frame_id: str
     version: int
     decision: Literal["approve", "reject"]
+    sample_offset_s: int | None = Field(default=None, ge=0, multiple_of=5)
 
 
 @app.post("/api/proposals/decide")
@@ -285,22 +287,33 @@ def _decide_locked(body: DecideIn):
         raise HTTPException(409, "Camera media changed since this analysis; wait for re-analysis")
     if _camera_reference_only(a.get("observed_at")):
         raise HTTPException(409, "Camera footage is outside the 30-minute observation window for this forecast.")
-    eff = a.get("proposed_effect") or {"kind": "none"}
+    result = a.get("result") or {}
+    samples = result.get("samples", [])
+    offset = body.sample_offset_s
+    if samples:
+        offset = 0 if offset is None else offset
+        sample = next((s for s in samples if s["offset_s"] == offset), None)
+        if sample is None:
+            raise HTTPException(409, "No analyzed frame at this playback time")
+        result = sample["result"]
+    elif offset is not None:
+        raise HTTPException(409, "This recording has no time-specific analysis; re-analyze the media")
+    eff = frame_effect(body.frame_id, result)
     if eff["kind"] == "none":
         raise HTTPException(409, "Nothing to approve for this camera")
-    key = f"{body.frame_id}@{body.version}"
+    key = f"{body.frame_id}@{body.version}" + (f":{offset}" if offset is not None else "")
     if key in engine.decisions:
         return engine.decisions[key]
     rec = {"frame_id": body.frame_id, "version": body.version, "decision": body.decision,
-           "effect": eff, "sim_time_s": engine.t}
+           "effect": eff, "sim_time_s": engine.t, "sample_offset_s": offset}
     if body.decision == "approve":
         if engine.t >= engine.duration:
             raise HTTPException(409, "Run finished; reset the scenario to apply new observations")
         frame = vision.frames[body.frame_id]
         obs = {"observation_id": "obs-" + uuid.uuid4().hex[:8], "run_id": engine.run_id, "frame_id": body.frame_id,
-               "status": "done", "result": a["result"], "source_kind": a.get("source_kind"),
+               "status": "done", "result": result, "source_kind": a.get("source_kind"),
                "model_id": a.get("model_id"), "observed_at": a.get("observed_at"), "proposed_effect": eff,
-               "applications": [], "segment_ids": frame["segment_ids"]}
+               "applications": [], "segment_ids": frame["segment_ids"], "sample_offset_s": offset}
         engine.observations[obs["observation_id"]] = obs
         rec["apply_tick"] = engine.schedule_apply(obs, frame["segment_ids"][0])
         rec["segment_id"] = frame["segment_ids"][0]
@@ -314,8 +327,10 @@ def rerun_analysis(frame_id: str):
         raise HTTPException(404, "Unknown frame")
     if frame_id in _inflight:
         return {"status": "processing"}
-    _force_live.add(frame_id)
-    analyses.pop(frame_id, None)  # the auto loop re-analyzes with a live model call within a few seconds
+    current = analyses.get(frame_id)
+    if current and current.get("status") == "done" and current.get("version") == vision.frames[frame_id].get("version", 0):
+        return {"status": "done", "reused": True}
+    analyses.pop(frame_id, None)  # reload cache/session result; unchanged media is never forced live
     return {"status": "queued"}
 
 

@@ -80,6 +80,8 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
     });
     map.current = m;
     maps.current[syncKey] = m;
+    const resizeObserver = new ResizeObserver(() => m.resize());
+    resizeObserver.observe(el.current!);
     let styled = false;
     const fallback = () => {
       if (styled) return;
@@ -119,7 +121,7 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
       d.title = `${f.name} — ${f.address} (Snow Plan critical facility)`;
       new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
     }
-    return () => { clearTimeout(timer); delete maps.current[syncKey]; m.remove(); };
+    return () => { clearTimeout(timer); resizeObserver.disconnect(); delete maps.current[syncKey]; m.remove(); };
   }, [network]);
 
   useEffect(() => {

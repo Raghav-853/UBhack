@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import MapPane, { DEPTH_STOPS, SNOWFALL_STOPS } from "./MapPane";
 import { Icon } from "./icons";
+import { cameraDecisionKey, playbackAnalysis } from "./cameraAnalysis";
 import type { SnowfallAreas, SnowfallField } from "./MapPane";
 
 const FIXED = "#f59e0b";
@@ -62,6 +63,7 @@ export default function App() {
     return () => { alive = false; clearInterval(framesTimer); };
   }, []);
   const reloadFrames = () => api("/api/frames").then(setFrames).catch(() => {});
+  const selectCamera = (id: string) => setCam(id);
 
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
@@ -75,6 +77,8 @@ export default function App() {
   const snowfallField = showSnowfall && field && field.max_rate_in_hr > 0 ? field : null;
   const rate = weather?.max_rate_in_hr ?? field?.max_rate_in_hr ?? snapshot.band?.rate_in_hr;
   const camState = cameraStates(state, frames);
+  const selectedCam = cam;
+  const selectedFrame = frames.find((f: any) => f.frame_id === selectedCam);
   return (
     <div className="app">
       <Header state={state} err={err} />
@@ -83,10 +87,10 @@ export default function App() {
           {isForecast && <ForecastStatus weather={weather} shown={showSnowfall} />}
           <MapPane title={`BASELINE: ${BASELINE_LABEL[state.scenario.params.baseline_policy] || "fixed"}`} accent={FIXED} network={network} world={P.fixed}
                    snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="fixed" maps={maps}
-                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
+                   frames={frames} selectedCam={selectedCam} onCameraClick={selectCamera} camState={camState} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
                    snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="adaptive" maps={maps}
-                   frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
+                   frames={frames} selectedCam={selectedCam} onCameraClick={selectCamera} camState={camState} />
           <Legend rate={rate} forecast={isForecast}
                   headingDeg={snowfallField ? snapshot.scenario.band?.heading_deg : undefined}
                   shown={showSnowfall} onToggle={setShowSnowfall} />
@@ -96,16 +100,14 @@ export default function App() {
               <button onClick={() => setHist(null)}>Back to live</button>
             </div>
           )}
-          {cam && frames.find((f: any) => f.frame_id === cam) && (
-            <CameraViewer state={state} network={network} frame={frames.find((f: any) => f.frame_id === cam)}
-                          onClose={() => setCam(null)} />
-          )}
+          {selectedFrame && <CameraViewer key={selectedFrame.frame_id} state={state} network={network}
+            frame={selectedFrame} onClose={() => setCam(null)} />}
         </div>
         <aside className="side">
-          <Proposals state={state} frames={frames} network={network} onOpen={setCam} />
+          <Proposals state={state} frames={frames} network={network} onOpen={selectCamera} />
           <Controls state={state} scenarios={scenarios} network={network} />
           <Metrics state={state} />
-          <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={cam} onSelect={setCam} />
+          <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={selectedCam} onSelect={selectCamera} />
           <Log state={state} />
           <History state={state} onShow={setHist} showing={view} />
         </aside>
@@ -139,7 +141,7 @@ function Header({ state, err }: any) {
         </span>
         {badge("Gemini", g.verified ? "on" : g.last_error ? "err" : "off",
           g.verified ? "" : g.configured ? (g.last_error ? "error" : hasSaved ? "saved" : "") : "off",
-          g.verified ? `verified (${g.last_model})` : g.configured ? (g.last_error ? `error ${g.last_error}` : hasSaved ? "showing saved results; ↻ Re-analyze for a fresh call" : "configured, not yet verified") : "no API key")}
+          g.verified ? `verified (${g.last_model})` : g.configured ? (g.last_error ? `error ${g.last_error}` : hasSaved ? "showing saved results; unchanged videos are analyzed once" : "configured, not yet verified") : "no API key")}
         {badge("Tiger", t.available ? "on" : t.last_error ? "err" : "off",
           t.available ? fmtCount(t.rows) : t.configured ? (t.last_error ? "error" : "…") : "off",
           t.available ? `${t.rows} rows written` : t.configured ? (t.last_error || "connecting") : "DATABASE_URL not set")}
@@ -358,19 +360,17 @@ function Camera({ state, frames, network, reloadFrames, selected, onSelect }: an
     <section>
       <h3 title="Or click a camera marker on the map">Cameras</h3>
       <div className="thumbs">
-        {frames.map((f: any) => (
-          <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""} onClick={() => onSelect(f.frame_id)}
-                  title={`${f.media_type === "video" ? "Video" : "Image"} · ${f.source}`}>
-            <Icon name={f.media_type === "video" ? "video" : "image"} /> {f.title}
-          </button>
-        ))}
+        {frames.map((f: any) => <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""}
+          onClick={() => onSelect(f.frame_id)}><Icon name={f.media_type === "video" ? "video" : "image"} /> {f.title}</button>)}
       </div>
+      <details className="small"><summary>Camera sources & uploads</summary>
       <div className="row small" style={{ alignItems: "center", marginTop: 6 }}>
         <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); onSelect(f.frame_id); }} />
         <button onClick={refresh511} disabled={!ny.configured || refreshing} title={nyTip}>{refreshing ? "Refreshing…" : "↻ 511NY"}</button>
         {ny.last_error && <span className="bad">511NY error</span>}
       </div>
       {msg && <div className="small">{msg}</div>}
+      </details>
     </section>
   );
 }
@@ -384,7 +384,7 @@ function cameraStates(state: any, frames: any[]) {
     if (!x || x.status === "processing") { out[f.frame_id] = "processing"; continue; }
     if (x.status !== "done" || !x.result) { out[f.frame_id] = "failed"; continue; }
     if (x.reference_only) { out[f.frame_id] = "reference"; continue; }
-    const d = state.camera?.decisions?.[`${f.frame_id}@${x.version}`];
+    const d = state.camera?.decisions?.[cameraDecisionKey(f, x)];
     const kind = x.proposed_effect?.kind;
     out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
   }
@@ -398,11 +398,12 @@ const effectTip = (eff: any) =>
 
 function Decision({ state, analysis, frame, network }: any) {
   const [msg, setMsg] = useState<string | null>(null);
-  const d = state.camera?.decisions?.[`${frame.frame_id}@${analysis.version}`];
+  const d = state.camera?.decisions?.[cameraDecisionKey(frame, analysis)];
   const seg = network.segments.find((x: any) => x.segment_id === frame.segment_ids[0]);
   const decide = async (decision: string) => {
     setMsg(null);
-    try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version, decision }); }
+    try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version,
+      decision, sample_offset_s: analysis.sample_offset_s }); }
     catch (e: any) { setMsg(e.message); }
   };
   if (analysis.reference_only) return <div className="small muted" title="Archived footage can't be applied to this forecast time">Reference only</div>;
@@ -430,25 +431,40 @@ function Decision({ state, analysis, frame, network }: any) {
 }
 
 function AnalysisView({ analysis }: any) {
-  const ts = (x: string) => x.slice(0, 16).replace("T", " ") + " UTC";
   if (!analysis || analysis.status === "processing") return <div className="small muted" role="status">Analyzing…</div>;
-  if (analysis.status === "failed") return <div className="bad small" role="alert"><Icon name="alert" /> {analysis.error}</div>;
+  if (analysis.status !== "done" || !analysis.result) return <div className="small warn-text" role="status"><Icon name="alert" /> {analysis.error || "Analysis unavailable"}</div>;
   const r = analysis.result;
-  const when = analysis.recorded_at ? `recorded ${ts(analysis.recorded_at)}` : analysis.analyzed_at ? `analyzed ${ts(analysis.analyzed_at)}` : "";
-  const obstruction = r.obstruction_detected === true ? "Obstruction" : r.obstruction_detected === false ? "No obstruction" : "Obstruction unknown";
+  const depthKnown = typeof r.snow_depth_cm === "number" && Number.isFinite(r.snow_depth_cm);
+  const confidenceKnown = depthKnown && typeof r.depth_confidence_pct === "number" && Number.isFinite(r.depth_confidence_pct);
+  const visibility = ["good", "reduced", "poor"].includes(r.visibility_class) ? r.visibility_class : "unknown";
+  const obstruction = r.obstruction_detected === true ? "Detected" : r.obstruction_detected === false ? "Not detected" : "Unknown";
   return (
-    <div className="obs">
-      <div className="row center tight">
+    <div className="camera-analysis-cards">
+      <div className="row center between tight">
         <SourceTag kind={analysis.source_kind} />
-        <span className="small muted">{[analysis.model_id, when].filter(Boolean).join(" · ")}</span>
+        <details className="analysis-info">
+          <summary aria-label="Show Gemini explanation" title="Gemini explanation"><Icon name="info" size={19} /></summary>
+          <div className="analysis-explanation">
+            <b>Gemini’s explanation</b><p>{r.evidence_summary || "No explanation returned."}</p>
+            <div className="small muted">{analysis.model_id} · {analysis.recorded_at ? `Saved ${analysis.recorded_at}` : "Fresh inference"}</div>
+          </div>
+        </details>
       </div>
       {analysis.note && <span className="small warn-text">{analysis.note}</span>}
-      <div className="chips">
-        <span className="chip">{String(r.surface_class).replace(/_/g, " ")}</span>
-        <span className="chip">visibility {r.visibility_class}</span>
-        <span className={`chip ${r.obstruction_detected ? "chip-bad" : ""}`}>{obstruction}</span>
+      <div className="analysis-card snow-card">
+        <div className="analysis-card-label"><Icon name="snow" size={17} /> Snow · AI estimate</div>
+        <div className="snow-depth-value">{depthKnown ? <>{r.snow_depth_cm.toFixed(1)}<span> cm</span></> : <span className="unavailable-value">No saved estimate</span>}</div>
+        <div className="confidence-line">{confidenceKnown ? <><b>{Math.round(r.depth_confidence_pct)}%</b> self-reported confidence</> : "Not included in saved analysis"}</div>
+        {confidenceKnown && <div className="confidence-track" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, r.depth_confidence_pct))}%` }} /></div>}
       </div>
-      <div className="small muted">“{r.evidence_summary}”</div>
+      <div className="analysis-card-pair">
+        <div className={`analysis-card status-${visibility}`}><div className="analysis-card-label">Visibility</div><strong>{visibility}</strong><span className="status-indicator" aria-hidden="true" /></div>
+        <div className={`analysis-card status-${r.obstruction_detected === true ? "poor" : r.obstruction_detected === false ? "good" : "unknown"}`}>
+          <div className="analysis-card-label">Obstruction</div><strong>{obstruction}</strong><span className="status-indicator" aria-hidden="true" />
+        </div>
+      </div>
+      <p className="estimate-note">Uncalibrated visual estimate · not measured road depth.</p>
+      {analysis.clip_summary_only && <p className="small warn-text">Saved clip summary only. Depth and timed samples were not included in this recording.</p>}
     </div>
   );
 }
@@ -459,7 +475,7 @@ function Proposals({ state, frames, network, onOpen }: any) {
     .map((a: any) => ({ a, f: frames.find((f: any) => f.frame_id === a.frame_id) }))
     .filter((x: any) => x.f);
   if (!items.length) return null;
-  const pending = items.filter((x: any) => !state.camera.decisions[`${x.f.frame_id}@${x.a.version}`]).length;
+  const pending = items.filter((x: any) => !state.camera.decisions[cameraDecisionKey(x.f, x.a)]).length;
   return (
     <section className="proposals">
       <h3><Icon name="alert" /> Camera alerts {pending > 0 && <span className="pill">{pending} pending</span>}</h3>
@@ -482,30 +498,73 @@ function Proposals({ state, frames, network, onOpen }: any) {
 }
 
 function CameraViewer({ state, frame, network, onClose }: any) {
-  const analysis = (state.camera?.analyses || []).find((a: any) => a.frame_id === frame.frame_id);
+  const [analysisExpanded, setAnalysisExpanded] = useState(true);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [duration, setDuration] = useState<number | undefined>();
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const closeAction = useRef(onClose);
+  closeAction.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    closeButton.current?.focus();
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); closeAction.current(); } };
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("keydown", escape); if (previous?.isConnected) previous.focus(); };
+  }, []);
+  const original = (state.camera?.analyses || []).find((a: any) => a.frame_id === frame.frame_id);
+  const analysis = frame.media_type === "video" ? playbackAnalysis(original, playbackTime, duration) : original;
   const segName = (sid: string) => {
     const s = network.segments.find((x: any) => x.segment_id === sid);
     return s ? `${s.name || s.highway} (${sid})` : sid;
   };
-  const rerun = () => api(`/api/analyses/${frame.frame_id}/rerun`, {}).catch(() => {});
+  const rerun = async () => {
+    setRequestError(null);
+    try { await api(`/api/analyses/${frame.frame_id}/rerun`, {}); }
+    catch (e: any) { setRequestError(e.message); }
+  };
   return (
-    <div className="viewer">
+    <div className={`viewer camera-popup ${analysisExpanded ? "analysis-expanded" : "analysis-collapsed"}`}
+         role="dialog" aria-labelledby={`camera-title-${frame.frame_id}`}>
       <div className="viewer-head">
-        <b><Icon name="video" /> {frame.title}</b>
-        <button className="icon-btn" onClick={onClose} aria-label="Close camera viewer"><Icon name="x" /></button>
+        <b id={`camera-title-${frame.frame_id}`}><Icon name="video" /> {frame.title}</b>
+        <button ref={closeButton} className="icon-btn" onClick={onClose} aria-label="Close camera viewer"><Icon name="x" /></button>
       </div>
+      <div className="camera-popup-body">
+        <aside className="popup-analysis" aria-label="Gemini analysis">
+          <div className="popup-analysis-head">
+            {analysisExpanded && <div><span className="camera-eyebrow">GEMINI VISION</span><h2>Camera analysis</h2></div>}
+            <button className="icon-btn camera-toggle" aria-expanded={analysisExpanded} aria-controls="popup-analysis-content"
+              aria-label={analysisExpanded ? "Collapse camera analysis" : "Expand camera analysis"}
+              onClick={() => setAnalysisExpanded(!analysisExpanded)}>
+              {analysisExpanded ? "‹" : <Icon name="camera" size={20} />}
+            </button>
+          </div>
+          {analysisExpanded && <div id="popup-analysis-content" className="popup-analysis-content">
+            <AnalysisView analysis={analysis} />
+            {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
+            {analysis?.status === "done" && !analysis.reference_only && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action needed.</div>}
+            <button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}
+              title="Reuse saved analysis; only new media is sent to Gemini"><Icon name="refresh" /> {original?.status === "done" ? "Use saved analysis" : "Analyze once"}</button>
+            {requestError && <p className="small bad" role="alert">{requestError}</p>}
+          </div>}
+        </aside>
+        <div className="camera-media">
       {frame.media_type === "video"
-        ? <video key={frame.media_url} src={frame.media_url} autoPlay muted loop playsInline controls />
+        ? <video key={frame.media_url} src={frame.media_url} autoPlay muted loop playsInline controls
+                 onTimeUpdate={(e) => setPlaybackTime(e.currentTarget.currentTime)}
+                 onSeeked={(e) => setPlaybackTime(e.currentTarget.currentTime)}
+                 onLoadedMetadata={(e) => { setDuration(e.currentTarget.duration); setPlaybackTime(0); }} />
         : <img src={frame.media_url} alt={frame.title} />}
+      {frame.media_type === "video" && <div className="sample-clock"><span>PLAYBACK {playbackTime.toFixed(1)}s</span>
+        <span>{analysis?.sample_offset_s !== undefined ? `FRAME ${analysis.sample_offset_s}s · 5s interval`
+          : original?.status === "processing" ? "Analyzing…" : "No timed samples saved"}</span></div>}
       <div className="small">
         <span className="tag archive">ARCHIVE</span>{" "}
         Captured <b>{frame.observed_at ? frame.observed_at.slice(0, 10) : "unknown"}</b>
         {frame.observed_at_precision ? <span className="muted"> ({frame.observed_at_precision})</span> : ""}
         <span className="muted"> · {frame.relation === "adjacent" ? "near" : "on"} {frame.segment_ids.map(segName).join(", ")}</span>
       </div>
-      <AnalysisView analysis={analysis} />
-      {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
-      {analysis?.status === "done" && !analysis.reference_only && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action needed.</div>}
       <details className="small">
         <summary>Source, mapping & weather</summary>
         <div className="muted">
@@ -523,8 +582,8 @@ function CameraViewer({ state, frame, network, onClose }: any) {
           <div className="muted">{frame.weather_note}</div>
         </div>}
       </details>
-      <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}
-                   title="Make a fresh Gemini call on this media"><Icon name="refresh" /> Re-analyze</button></div>
+        </div>
+      </div>
     </div>
   );
 }

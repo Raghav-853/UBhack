@@ -139,7 +139,7 @@ def main():
     for b in BASELINES:
         L += [f"## Adaptive vs {BASELINE_LABEL[b]}", ""] + table(report["results"][f"random:{b}"]["summary"], BASELINE_LABEL[b]) + [""]
     L += ["## Ablations (vs City published priority, same trials)", "",
-          "Which part of the adaptive policy produces the effect: the 30-minute storm look-ahead, the critical-corridor weight, or neither.", ""]
+          f"Which part of the adaptive policy produces the effect: the {p['horizon_s'] / 60:g}-minute storm look-ahead, the critical-corridor weight, or neither.", ""]
     for name, label in [("no_lookahead", "Adaptive without look-ahead"), ("no_critical_weight", "Adaptive without critical weight"),
                         ("neither", "Adaptive without either")]:
         L += [f"### {label}", ""] + table(report["results"][f"ablation:{name}"]["summary"], "City priority", label) + [""]

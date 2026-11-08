@@ -30,8 +30,8 @@ DEFAULT_PARAMS = {
     "min_service_depth_in": 1.0,
     "residual_in": 0.2,
     "threshold_in": 1.5,          # illustrative, not a certified safety limit
-    "horizon_s": 1800,
-    "corridor_beta": 3.0,
+    "horizon_s": 3300,           # selected all-metric moving-band demo preset: 55 minutes
+    "corridor_beta": 0.0,        # 1x critical multiplier; road-tier priorities still apply
     "closure_duration_s": 2700,
     "visibility_factor": {"reduced": 0.8, "poor": 0.6},
     "slowdown_duration_s": 3600,

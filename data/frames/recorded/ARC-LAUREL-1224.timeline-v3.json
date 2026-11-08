@@ -1,0 +1,75 @@
+{
+  "frame_id": "ARC-LAUREL-1224",
+  "media": "laurel-st-20221224.webm",
+  "media_sha1": "669c168723c3c2dc",
+  "model_id": "gemini-3.5-flash-lite",
+  "recorded_at": "2026-11-08T02:38:06.691561+00:00",
+  "source_kind": "recorded_inference",
+  "analysis_schema_version": 3,
+  "result": {
+    "surface_class": "snow_covered",
+    "visibility_class": "reduced",
+    "obstruction_detected": false,
+    "snow_depth_cm": 25.0,
+    "depth_confidence_pct": 50.0,
+    "evidence_summary": "At 0s, the sidewalk and surroundings are heavily snow-covered with reduced visibility due to falling snow and overcast conditions. Parked cars are hemmed in with significant accumulation. Estimated street snow depth is around 25 cm based on regional context and visual cues, with moderate confidence due to unplowed street conditions.",
+    "samples": [
+      {
+        "offset_s": 0,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "reduced",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "At 0s, the sidewalk and surroundings are heavily snow-covered with reduced visibility due to falling snow and overcast conditions. Parked cars are hemmed in with significant accumulation. Estimated street snow depth is around 25 cm based on regional context and visual cues, with moderate confidence due to unplowed street conditions."
+        }
+      },
+      {
+        "offset_s": 5,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "reduced",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "At 5s, the camera pans slightly down the residential street during the blizzard. Visibility remains reduced from falling snow and wind. The street surface is completely snow-covered with parked vehicles heavily banked in by snow."
+        }
+      },
+      {
+        "offset_s": 10,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "reduced",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 50.0,
+          "evidence_summary": "At 10s, continuous forward panning reveals more parked cars and heavy accumulation across the entire road and walkway. Visibility is poor to reduced, and no active plowing is visible."
+        }
+      },
+      {
+        "offset_s": 15,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "reduced",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 45.0,
+          "evidence_summary": "At 15s, the camera continues moving forward. The scene remains thoroughly snow-covered with whiteout-like reduced visibility. Depth estimate remains near 25 cm consistent with earlier frames and contextual weather data."
+        }
+      },
+      {
+        "offset_s": 20,
+        "result": {
+          "surface_class": "snow_covered",
+          "visibility_class": "reduced",
+          "obstruction_detected": false,
+          "snow_depth_cm": 25.0,
+          "depth_confidence_pct": 45.0,
+          "evidence_summary": "At 20s, near the end of the clip, heavy snowfall persists and obscures distant details. The visible street and sidewalks remain deeply covered in snow with no travel lane obstructions observed."
+        }
+      }
+    ],
+    "sample_interval_s": 5
+  }
+}
