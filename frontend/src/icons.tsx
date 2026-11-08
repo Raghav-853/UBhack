@@ -1,4 +1,4 @@
-// Small stroke icon set (24px grid, currentColor) so the UI uses one icon family instead of emoji.
+// Crisp 24px technical stroke icon set (currentColor).
 const P: Record<string, string> = {
   play: "M7 4.5v15l12-7.5z",
   pause: "M8 5v14M16 5v14",
@@ -18,6 +18,10 @@ const P: Record<string, string> = {
   snow: "M12 2v20M4 7l16 10M20 7L4 17",
   up: "M12 19V5M6 11l6-6 6 6",
   down: "M12 5v14M6 13l6 6 6-6",
+  sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
+  activity: "M22 12h-4l-3 9L9 3l-3 9H2",
+  truck: "M1 3h15v13H1zM16 8h4l3 3v5h-7V8zM5.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 18.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+  layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
 };
 
 export type IconName = keyof typeof P;

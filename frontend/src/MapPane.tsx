@@ -8,19 +8,19 @@ const STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
 const BLANK: any = {
   version: 8,
   sources: {},
-  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0b1220" } }],
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#090a0c" } }],
 };
 
 export const DEPTH_STOPS: [number, string][] = [
-  [0, "#22c55e"], [0.75, "#a3e635"], [1.25, "#facc15"], [1.75, "#f97316"], [3, "#ef4444"], [4, "#991b1b"],
+  [0, "#10b981"], [0.75, "#84cc16"], [1.25, "#eab308"], [1.75, "#f97316"], [3, "#ef4444"], [4, "#991b1b"],
 ];
 // End-of-run summary: share of the run each road spent above the exposure threshold.
 export const UNSAFE_SHARE_STOPS: [number, string][] = [
-  [0, "#22c55e"], [0.05, "#a3e635"], [0.15, "#facc15"], [0.3, "#f97316"], [0.5, "#ef4444"], [0.8, "#991b1b"],
+  [0, "#10b981"], [0.05, "#84cc16"], [0.15, "#eab308"], [0.3, "#f97316"], [0.5, "#ef4444"], [0.8, "#991b1b"],
 ];
 export const SNOWFALL_STOPS: [rate: number, color: string, opacity: number][] = [
-  [0, "#60a5fa", 0], [0.1, "#60a5fa", 0.15], [0.25, "#60a5fa", 0.21], [1, "#60a5fa", 0.28],
-  [2, "#60a5fa", 0.36], [4, "#93c5fd", 0.50], [8, "#dbeafe", 0.62],
+  [0, "#38bdf8", 0], [0.1, "#38bdf8", 0.14], [0.25, "#38bdf8", 0.20], [1, "#38bdf8", 0.28],
+  [2, "#7dd3fc", 0.36], [4, "#bae6fd", 0.48], [8, "#e0f2fe", 0.62],
 ];
 const snowfallColor: ExpressionSpecification = [
   "interpolate", ["linear"], ["number", ["get", "rate_in_hr"], 0], ...SNOWFALL_STOPS.flatMap(([rate, color]) => [rate, color]),
@@ -47,6 +47,7 @@ const snowfallRgbaStops = SNOWFALL_STOPS.map(([rate, color, opacity]) => {
 
 type Props = {
   title: string;
+  tag?: string;
   accent: string;
   network: any;
   world: any;
@@ -63,7 +64,24 @@ type Props = {
   inset?: "left" | "right" | null;
 };
 
-export default function MapPane({ title, accent, network, world, snowfall, snowfallField, env, syncKey, maps, frames, selectedCam, onCameraClick, camState, summary = false, inset = null }: Props) {
+export default function MapPane({
+  title,
+  tag,
+  accent,
+  network,
+  world,
+  snowfall,
+  snowfallField,
+  env,
+  syncKey,
+  maps,
+  frames,
+  selectedCam,
+  onCameraClick,
+  camState,
+  summary = false,
+  inset = null,
+}: Props) {
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
   clickRef.current = onCameraClick;
@@ -83,7 +101,7 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
       container: el.current!,
       style: STYLE,
       bounds: [[b[0], b[1]], [b[2], b[3]]],
-      fitBoundsOptions: { padding: 24 },
+      fitBoundsOptions: { padding: 28 },
       attributionControl: { compact: true, customAttribution: "Road network © OpenStreetMap contributors (ODbL)" },
     });
     map.current = m;
@@ -134,8 +152,7 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
       if (!mk) {
         const d = document.createElement("div");
         d.className = "cctv";
-        // Same stroke "video" icon as the side panel; focusable so keyboard users can open it.
-        d.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h12v10H3zM15 10l6-3v10l-6-3"/></svg>';
+        d.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h12v10H3zM15 10l6-3v10l-6-3"/></svg>';
         d.tabIndex = 0;
         d.setAttribute("role", "button");
         d.addEventListener("click", (e) => { e.stopPropagation(); clickRef.current(f.frame_id); });
@@ -160,28 +177,62 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
     if (map.current && ready.current) updateSnowfallField(map.current, snowfallField);
   }, [snowfallField]);
 
-  // End-of-run layout: refit so the road network clears the centred results popup.
   useEffect(() => {
     const m = map.current;
     if (!m) return;
     const id = requestAnimationFrame(() => {
       m.resize();
       const b = network.bounds;
-      const INSET = 260;
-      const padding = inset === "right" ? { top: 40, bottom: 24, left: 16, right: INSET }
-        : inset === "left" ? { top: 40, bottom: 24, left: INSET, right: 16 } : 24;
-      m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, duration: 500 });
+      const INSET = 220;
+      const padding = inset === "right" ? { top: 36, bottom: 28, left: 20, right: INSET }
+        : inset === "left" ? { top: 36, bottom: 28, left: INSET, right: 20 } : 28;
+      m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, duration: 450 });
     });
     return () => cancelAnimationFrame(id);
   }, [inset]);
 
+  const m = world?.metrics;
+
   return (
     <div className="pane">
-      <div className="pane-title" style={{ borderColor: accent }}>
-        <span style={{ color: accent }}>{title}</span>
-        {basemap === "offline" && <span className="muted"> (basemap offline)</span>}
+      <div className="pane-header">
+        <div className="pane-title-group">
+          <span className="pane-indicator" style={{ background: accent }} />
+          {tag && <span className="pane-tag" style={{ color: accent, borderColor: accent }}>{tag}</span>}
+          <span className="pane-title-text">{title}</span>
+          {basemap === "offline" && <span className="pane-offline">OFFLINE BASEMAP</span>}
+        </div>
+        {m && (
+          <div className="pane-kpis" aria-label={`${title} live telemetry`}>
+            <div className="pane-kpi" title="Minutes critical roads spent above snow depth threshold">
+              <span className="kpi-label">CRIT UNSAFE</span>
+              <span className="kpi-val">{Number(m.critical_exposure_min ?? 0).toFixed(0)}<small>m</small></span>
+            </div>
+            <div className="pane-kpi" title="Average snow depth on critical corridor segments">
+              <span className="kpi-label">CRIT DEPTH</span>
+              <span className="kpi-val">{Number(m.avg_critical_depth_in ?? 0).toFixed(2)}<small>in</small></span>
+            </div>
+            <div className="pane-kpi" title="Snow cleared per active crew-hour (in·km)">
+              <span className="kpi-label">CLEAR RATE</span>
+              <span className="kpi-val">{Number(m.inch_km_per_crew_hour ?? 0).toFixed(1)}<small>in·km/h</small></span>
+            </div>
+          </div>
+        )}
       </div>
-      <div ref={el} className="map" />
+      <div className="map-canvas-wrap">
+        <div ref={el} className="map" />
+        {world?.vehicles?.length > 0 && (
+          <div className="map-fleet-hud" aria-label={`${title} active units`}>
+            {world.vehicles.map((v: any) => (
+              <div key={v.vehicle_id} className={`hud-unit status-${v.status}`} title={v.explanation?.reason || v.label}>
+                <span className={`hud-unit-id ${v.type || ""}`}>{v.vehicle_id}</span>
+                <span className="hud-unit-status">{v.status}</span>
+                <span className="hud-unit-target">{v.explanation?.target_name || "Standby"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -194,25 +245,23 @@ function addLayers(m: maplibregl.Map, network: any) {
     "fill-color": snowfallColor, "fill-opacity": snowfallOpacity, "fill-antialias": false,
   } });
   m.addLayer({ id: "band-line", type: "line", source: "snowfall", filter: ["==", ["get", "outline"], true], paint: {
-    "line-color": "#93c5fd", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
+    "line-color": "#7dd3fc", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
   } });
   m.addSource("snowfall-contours", { type: "geojson", data: { type: "FeatureCollection", features: [] } as any });
-  // Dark halo under the dashes keeps the snowband boundary readable on any basemap.
   m.addLayer({ id: "contour-halo", type: "line", source: "snowfall-contours", layout: { "line-join": "round" }, paint: {
-    "line-color": "#0b1220", "line-opacity": 0.55, "line-width": ["case", [">=", ["get", "level"], 2], 4.5, 3.5],
+    "line-color": "#090a0c", "line-opacity": 0.65, "line-width": ["case", [">=", ["get", "level"], 2], 4.5, 3.5],
   } });
-  // line-dasharray cannot be data-driven in MapLibre 4, so edge and core are separate layers.
   m.addLayer({ id: "contour-edge", type: "line", source: "snowfall-contours", filter: ["<", ["get", "level"], 2],
-    layout: { "line-join": "round" }, paint: { "line-color": "#94a3b8", "line-width": 1.6, "line-dasharray": [4, 3] } });
+    layout: { "line-join": "round" }, paint: { "line-color": "#94a3b8", "line-width": 1.5, "line-dasharray": [4, 3] } });
   m.addLayer({ id: "contour-core", type: "line", source: "snowfall-contours", filter: [">=", ["get", "level"], 2],
-    layout: { "line-join": "round" }, paint: { "line-color": "#f0f9ff", "line-width": 2.2, "line-dasharray": [2, 1.5] } });
+    layout: { "line-join": "round" }, paint: { "line-color": "#e0f2fe", "line-width": 2.1, "line-dasharray": [2, 1.5] } });
   m.addLayer({ id: "nws-grid-boundaries", type: "line", source: "snowfall", filter: ["has", "grid_id"], paint: {
-    "line-color": "#9fb1cb", "line-opacity": 0.7, "line-width": 1.2, "line-dasharray": [3, 2],
+    "line-color": "#94a3b8", "line-opacity": 0.65, "line-width": 1.1, "line-dasharray": [3, 2],
   } });
   m.addLayer({
     id: "roads-casing", type: "line", source: "roads", filter: ["==", ["get", "critical"], true],
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#ffffff", "line-opacity": 0.22, "line-width": 9 },
+    paint: { "line-color": "#ffffff", "line-opacity": 0.24, "line-width": 9 },
   });
   const ramp: any[] = ["interpolate", ["linear"], ["get", "depth"]];
   DEPTH_STOPS.forEach(([v, c]) => ramp.push(v, c));
@@ -226,25 +275,25 @@ function addLayers(m: maplibregl.Map, network: any) {
   });
   m.addLayer({
     id: "roads-route", type: "line", source: "roads", filter: ["==", ["get", "route"], true],
-    paint: { "line-color": "#ffffff", "line-width": 1.6, "line-dasharray": [1.5, 1.5] },
+    paint: { "line-color": "#ffffff", "line-width": 1.5, "line-dasharray": [1.5, 1.5] },
   });
   m.addLayer({
     id: "roads-slow", type: "line", source: "roads", filter: ["==", ["get", "slow"], true],
-    paint: { "line-color": "#cbd5e1", "line-width": 8, "line-opacity": 0.45, "line-dasharray": [0.6, 1.2] },
+    paint: { "line-color": "#e2e8f0", "line-width": 8, "line-opacity": 0.45, "line-dasharray": [0.6, 1.2] },
   });
   m.addLayer({
     id: "roads-closed", type: "line", source: "roads", filter: ["==", ["get", "closed"], true],
-    paint: { "line-color": "#f8fafc", "line-width": 8, "line-dasharray": [1, 1] },
+    paint: { "line-color": "#ef4444", "line-width": 8, "line-dasharray": [1, 1] },
   });
   const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
   m.on("mousemove", "roads", (e: any) => {
     m.getCanvas().style.cursor = "pointer";
     const p = e.features[0].properties;
     popup.setLngLat(e.lngLat).setHTML(
-      `<b>${p.name || p.highway}</b> <span class="muted">${p.sid}</span><br/>` +
-      `Est. depth <b>${Number(p.depth).toFixed(1)} in</b>${p.critical ? " · critical" : ""}<br/>` +
-      `${p.width === "narrow" ? "Narrow (compact blower)" : "Wide (heavy plow)"}` +
-      `${p.closed ? "<br/><b>Closed (accepted camera event)</b>" : ""}`
+      `<div class="road-popup-head"><b>${p.name || p.highway}</b> <span class="mono muted">${p.sid}</span></div>` +
+      `<div class="road-popup-row">Est. depth: <b class="mono">${Number(p.depth).toFixed(1)} in</b>${p.critical ? ' · <span class="crit-tag">CRITICAL</span>' : ""}</div>` +
+      `<div class="road-popup-row muted">${p.width === "narrow" ? "Residential / Narrow (compact unit)" : "Arterial / Wide (heavy plow)"}</div>` +
+      `${p.closed ? '<div class="road-popup-closed">CLOSED — CAMERA INCIDENT ACTIVE</div>' : ""}`
     ).addTo(m);
   });
   m.on("mouseleave", "roads", () => { m.getCanvas().style.cursor = ""; popup.remove(); });
