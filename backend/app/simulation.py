@@ -258,6 +258,10 @@ class World:
         self.reserved: dict[str, str] = {}
         self.pending_reaccum: dict[str, float] = {}
         self.unique_serviced: set[str] = set()
+        # Run-long per-segment accumulators for the end-of-run summary map.
+        self.depth_sum: dict[str, float] = {sid: 0.0 for sid in net.segments}
+        self.over_s: dict[str, float] = {sid: 0.0 for sid in net.segments}
+        self.elapsed_s = 0.0
         self.log: deque = deque(maxlen=60)
         self.m = {
             "critical_exposure_min": 0.0, "exposure_min": 0.0, "travel_m": 0.0, "service_m": 0.0,
@@ -269,7 +273,8 @@ class World:
             start = net.start_points.get(f["start"], net.center) if isinstance(f["start"], str) else tuple(f["start"])
             self.vehicles.append(Vehicle(id=f["id"], vtype=f["type"], node=net.nearest_node(start, f["type"])))
         self.fixed_order = {v.id: routing.build_fixed_order(self, v) for v in self.vehicles}
-        self.fixed_ptr: dict[str, int] = {}
+        self.fixed_ptr: dict = {}
+        self.route_order: dict[str, list[str]] = {}  # city_priority pre-determined routes, built on first use
 
     def forecast_in(self, sid: str, t: float, horizon: float) -> float:
         if self.forecast is not None:
@@ -331,8 +336,11 @@ class World:
         for v in self.vehicles:
             self._advance(v, dt, t)
         thr = self.params["threshold_in"]
+        self.elapsed_s += dt
         for sid, seg in self.net.segments.items():
+            self.depth_sum[sid] += self.depth[sid] * dt
             if self.depth[sid] > thr:
+                self.over_s[sid] += dt
                 self.m["exposure_min"] += dt / 60
                 if seg.critical:
                     self.m["critical_exposure_min"] += dt / 60
@@ -427,6 +435,21 @@ class World:
             "avg_critical_depth_in": round(sum(self.depth[s] for s in crit) / len(crit), 2) if crit else 0.0,
         }
 
+    def run_summary(self) -> dict:
+        """Time-averaged depth and time above threshold per segment over the run so far."""
+        if self.elapsed_s <= 0:
+            return {"segments": {}, "mean_depth_in": 0.0, "road_hours_over": 0.0, "critical_road_hours_over": 0.0}
+        segs = self.net.segments
+        avg = {sid: self.depth_sum[sid] / self.elapsed_s for sid in segs}
+        total_len = sum(s.length_m for s in segs.values())
+        return {
+            "segments": {sid: [round(avg[sid], 2), round(self.over_s[sid] / 60, 1),
+                               round(self.over_s[sid] / self.elapsed_s, 3)] for sid in segs},
+            "mean_depth_in": round(sum(avg[sid] * s.length_m for sid, s in segs.items()) / total_len, 2),
+            "road_hours_over": round(sum(self.over_s.values()) / 3600, 1),
+            "critical_road_hours_over": round(sum(self.over_s[sid] for sid, s in segs.items() if s.critical) / 3600, 1),
+        }
+
     def public(self, t: float) -> dict:
         vehicles = []
         for v in self.vehicles:
@@ -440,6 +463,8 @@ class World:
         return {
             "segments": {sid: [round(d, 2), None if self.last_service[sid] is None else round(self.last_service[sid])]
                          for sid, d in self.depth.items()},
+            "segment_summary": self.run_summary()["segments"],
+            "run_summary": {k: v for k, v in self.run_summary().items() if k != "segments"},
             "vehicles": vehicles,
             "metrics": self.metrics(),
             "log": list(self.log)[:25],
@@ -506,6 +531,7 @@ class Engine:
             self.observations = {k: o for k, o in self.observations.items() if o.get("run_id") == self.run_id}
             self.pending_apply = []
             self.decisions: dict[str, dict] = {}  # dispatcher approve/reject per run
+            self.camera_triggered: dict[str, dict] = {}  # camera alerts unlocked once mapped road snow passes the threshold
             self.scheduled = sorted(sc.get("scheduled_observations", []), key=lambda e: e["at_s"])
             self._alert_state = {"crit_frac_high": False, "last_alert_t": -1e9}
             self._sample()

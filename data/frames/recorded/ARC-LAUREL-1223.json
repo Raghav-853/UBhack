@@ -2,13 +2,13 @@
   "frame_id": "ARC-LAUREL-1223",
   "media": "laurel-st-20221223.webm",
   "media_sha1": "9eafa0d7cde41c61",
-  "model_id": "gemini-3.5-flash",
-  "recorded_at": "2026-11-07T22:37:02.904024+00:00",
+  "model_id": "gemini-3.5-flash-lite",
+  "recorded_at": "2026-11-08T02:42:05.859867+00:00",
   "source_kind": "recorded_inference",
   "result": {
     "surface_class": "snow_covered",
     "visibility_class": "poor",
     "obstruction_detected": false,
-    "evidence_summary": "Heavy snow and dense fog severely restrict visibility while ground surfaces and parked cars are completely covered in snow."
+    "evidence_summary": "The ground and road surfaces are completely covered in snow during heavy snowfall with poor visibility."
   }
 }

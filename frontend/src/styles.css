@@ -208,3 +208,65 @@ table.metrics.compact { margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.run-summary-badge { margin-left: 10px; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; background: #1e1b4b; color: #e0e7ff; border: 1px solid #818cf8; }
+.summarybanner { background: #1e1b4b; }
+.body.ended .side { display: none; }
+.results-popup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 440px; max-height: calc(100% - 120px);
+  overflow-y: auto; z-index: 6; background: #0d1628; border: 1px solid #38bdf8; border-radius: 8px; padding: 6px 14px 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+.results-popup section { border-bottom: none; }
+.results-close { position: absolute; top: 6px; right: 8px; padding: 0 8px; font-size: 16px; line-height: 22px; }
+.metrics tr.key-row td { font-weight: 700; }
+.metrics tr.key-row td:not(.good):not(.bad) { color: #f8fafc; }
+
+/* ---- palette pass: only baseline (amber) and adaptive (cyan) carry colour; other accents are greys ---- */
+:root { --good: #22d3ee; --bad: #f59e0b; --neutral: #94a3b8; --neutral-bg: #141c2c; --neutral-line: #334155; }
+.badge.on, .badge.warn, .badge.err { color: #cbd5e1; border-color: var(--neutral-line); }
+.warn-text { color: var(--muted); }
+.vdot.compact, .veh.compact_blower, .veh-chip { background: #94a3b8; color: #0b1220; }
+.veh[data-status="servicing"] { box-shadow: 0 0 0 4px rgba(248, 250, 252, 0.55); }
+.landmark { color: #cbd5e1; } .landmark .star { color: #94a3b8; }
+.facility.hospital, .facility.police, .facility.fire, .facility.critical { background: #475569; }
+.legend i.fac { background: #475569; }
+.legend i.closed { background: repeating-linear-gradient(90deg, #f8fafc 0 3px, transparent 3px 6px); }
+.legend i.contour-edge { border-top-color: #94a3b8; }
+.cctv { color: #cbd5e1; border-color: #64748b; }
+.cctv:hover, .cctv.sel { border-color: #f8fafc; box-shadow: 0 0 0 3px rgba(248, 250, 252, 0.35); }
+.cctv[data-state="pending"] { border-color: #f8fafc; animation: pulse-neutral 1.2s infinite; }
+.cctv[data-state="approved"] { border-color: #f8fafc; background: #334155; }
+@keyframes pulse-neutral { 0%, 100% { box-shadow: 0 0 0 0 rgba(248, 250, 252, 0.6); } 50% { box-shadow: 0 0 0 7px rgba(248, 250, 252, 0); } }
+.viewer, .results-popup { border-color: var(--neutral-line); }
+.histbanner, .summarybanner, .run-summary-badge { background: var(--neutral-bg); border-color: var(--neutral-line); color: var(--text); }
+.proposals { background: var(--neutral-bg); border-color: var(--neutral-line); }
+.proposals h3 { color: var(--text); }
+.proposal { border-top-color: var(--neutral-line); }
+.pill { background: #475569; }
+.alerts { background: var(--neutral-bg); border-color: var(--neutral-line); }
+button.approve { background: #0e7490; border-color: #0e7490; }
+button.reject { background: #1f2937; border-color: var(--neutral-line); }
+.tag.live_inference, .tag.recorded_inference, .tag.synthetic_fixture, .tag.archive { background: #334155; color: #e2e8f0; }
+ul.log li.reroute b { color: var(--text); }
+.context { color: var(--muted); }
+.snow-card { background: #121e33; border-color: #2d405c; }
+.status-good strong, .status-reduced strong, .status-poor strong { color: var(--text); }
+.status-good .status-indicator, .status-reduced .status-indicator, .status-poor .status-indicator { background: var(--neutral); }
+.chip-bad { color: var(--text); border-color: var(--neutral-line); }
+/* hero number */
+.hero { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 10px; }
+.hero-num { font-size: 38px; font-weight: 700; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.hero-num.worse { color: #f59e0b; }
+.hero-label { color: var(--muted); font-size: 13px; }
+
+/* ---- declutter pass: sentence-case headings, fewer boxes, quieter defaults ---- */
+h3 { text-transform: none; letter-spacing: 0; font-size: 13px; color: #cbd5e1; font-weight: 600; }
+.pane-title { letter-spacing: 0; font-size: 13px; }
+.pane { border-color: transparent; }
+.proposals { background: none; border: none; padding: 0; margin: 0; }
+.proposal { border-top: 1px solid #1e293b; }
+.histbanner, .summarybanner { border: none; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45); }
+.results-popup { border-color: #1e293b; }
+.landmark { font-weight: 500; font-size: 11px; color: #94a3b8; }
+.maplibregl-ctrl-attrib { background: rgba(11, 18, 32, 0.55) !important; font-size: 10px; }
+.maplibregl-ctrl-attrib, .maplibregl-ctrl-attrib a { color: #64748b !important; }
+input[type="range"] { accent-color: var(--accent); }
+select, button { border-radius: 6px; }

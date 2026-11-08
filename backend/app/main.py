@@ -97,6 +97,14 @@ def _announce_camera_proposals():
         if key in _announced or a["frame_id"] not in vision.frames:
             continue
         frame = vision.frames[a["frame_id"]]
+        # Alert only once modeled snow on the camera's mapped road reaches the exposure threshold (either world).
+        with engine.lock:
+            thr = engine.params["threshold_in"]
+            depth = max((w.depth.get(sid, 0.0) for w in engine.worlds.values() for sid in frame["segment_ids"]), default=0.0)
+            if a["frame_id"] not in engine.camera_triggered:
+                if depth < thr:
+                    continue
+                engine.camera_triggered[a["frame_id"]] = {"sim_time_s": engine.t, "depth_in": round(depth, 2)}
         r = a["result"]
         seg = engine.net.segments.get(frame["segment_ids"][0])
         parts = []
@@ -213,7 +221,7 @@ class ScenarioIn(BaseModel):
 
 class ControlIn(BaseModel):
     action: Literal["play", "pause", "step"]
-    speed_multiplier: float | None = Field(None, gt=0, le=32)
+    speed_multiplier: float | None = Field(None, gt=0, le=64)
 
 
 class AnalyzeIn(BaseModel):
@@ -259,7 +267,7 @@ def state():
         snap = _snapshot_cache["data"] or engine.snapshot()
         camera = {"analyses": [{**a, "reference_only": _camera_reference_only(a.get("observed_at"))}
                                for a in list(analyses.values())],
-                  "decisions": dict(engine.decisions)}
+                  "decisions": dict(engine.decisions), "triggered": dict(engine.camera_triggered)}
     return JSONResponse({**snap, "integrations": integrations(), "camera": camera})
 
 
@@ -280,6 +288,8 @@ def decide(body: DecideIn):
 def _decide_locked(body: DecideIn):
     if body.run_id != engine.run_id:
         raise HTTPException(409, "Run is no longer active")
+    if body.frame_id not in engine.camera_triggered:
+        raise HTTPException(409, "Snow on this camera's road has not reached the alert threshold yet")
     a = analyses.get(body.frame_id)
     if not a or a.get("status") != "done" or a.get("version") != body.version:
         raise HTTPException(409, "No current analysis for this camera")

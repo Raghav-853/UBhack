@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import MapPane, { DEPTH_STOPS, SNOWFALL_STOPS } from "./MapPane";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import MapPane, { DEPTH_STOPS, SNOWFALL_STOPS, UNSAFE_SHARE_STOPS } from "./MapPane";
 import { Icon } from "./icons";
 import { cameraDecisionKey, playbackAnalysis } from "./cameraAnalysis";
 import type { SnowfallAreas, SnowfallField } from "./MapPane";
@@ -44,6 +44,8 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const maps = useRef<Record<string, any>>({});
   const [cam, setCam] = useState<string | null>(null);
+  const [showSummary, setShowSummary] = useState(true);
+  const [resultsOpen, setResultsOpen] = useState(true);  // end-of-run results popup (sidebar tucked away)  // end-of-run average view (default on when finished)
   const [hist, setHist] = useState<any>(null);  // stored Tiger Data checkpoint shown instead of live state
   const [showSnowfall, setShowSnowfall] = useState(true);
 
@@ -62,6 +64,7 @@ export default function App() {
     poll();
     return () => { alive = false; clearInterval(framesTimer); };
   }, []);
+  useEffect(() => { setShowSummary(true); setResultsOpen(true); }, [state?.run_id]);
   const reloadFrames = () => api("/api/frames").then(setFrames).catch(() => {});
   const selectCamera = (id: string) => setCam(id);
 
@@ -78,26 +81,42 @@ export default function App() {
   const rate = weather?.max_rate_in_hr ?? field?.max_rate_in_hr ?? snapshot.band?.rate_in_hr;
   const camState = cameraStates(state, frames);
   const selectedCam = cam;
+  const finished = state.playback_status === "finished" && !view;
+  const summaryOn = finished && showSummary;
+  const endLayout = finished && resultsOpen;
   const selectedFrame = frames.find((f: any) => f.frame_id === selectedCam);
   return (
     <div className="app">
       <Header state={state} err={err} />
-      <div className="body">
+      <div className={endLayout ? "body ended" : "body"}>
         <div className={isForecast ? "maps with-forecast" : "maps"}>
           {isForecast && <ForecastStatus weather={weather} shown={showSnowfall} />}
-          <MapPane title={`BASELINE: ${BASELINE_LABEL[state.scenario.params.baseline_policy] || "fixed"}`} accent={FIXED} network={network} world={P.fixed}
-                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="fixed" maps={maps}
+          <MapPane title={`Baseline: ${BASELINE_LABEL[state.scenario.params.baseline_policy] || "fixed route"}`} accent={FIXED} network={network} world={P.fixed}
+                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="fixed" maps={maps} summary={summaryOn} inset={endLayout ? "right" : null}
                    frames={frames} selectedCam={selectedCam} onCameraClick={selectCamera} camState={camState} />
-          <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
-                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="adaptive" maps={maps}
+          <MapPane title="SnowTwin adaptive" accent={ADAPT} network={network} world={P.adaptive}
+                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="adaptive" maps={maps} summary={summaryOn} inset={endLayout ? "left" : null}
                    frames={frames} selectedCam={selectedCam} onCameraClick={selectCamera} camState={camState} />
-          <Legend rate={rate} forecast={isForecast}
+          <Legend rate={rate} forecast={isForecast} summary={summaryOn} threshold={state.scenario.params.threshold_in}
                   headingDeg={snowfallField ? snapshot.scenario.band?.heading_deg : undefined}
                   shown={showSnowfall} onToggle={setShowSnowfall} />
+          {finished && (
+            <div className="histbanner summarybanner">
+              {summaryOn ? <>Storm over. Road color shows how long each road stayed above {state.scenario.params.threshold_in} in.</>
+                         : <>Storm over. Showing the roads at the end.</>}
+              <button onClick={() => setShowSummary(!showSummary)}>{summaryOn ? "Show the end" : "Show the whole storm"}</button>
+            </div>
+          )}
           {view && (
             <div className="histbanner">
               <Icon name="db" /> Stored checkpoint {fmtClock(view.sim_time_s)} <span className="muted" title={`Read-only, from Tiger Data · run ${view.run_id}`}>read-only</span>
               <button onClick={() => setHist(null)}>Back to live</button>
+            </div>
+          )}
+          {endLayout && (
+            <div className="results-popup" role="dialog" aria-label="Results">
+              <button className="results-close" onClick={() => setResultsOpen(false)} title="Close and show the side panel">×</button>
+              <Metrics state={state} defaultAll highlight />
             </div>
           )}
           {selectedFrame && <CameraViewer key={selectedFrame.frame_id} state={state} network={network}
@@ -129,7 +148,7 @@ function Header({ state, err }: any) {
   const g = I.gemini, t = I.tiger, v = I.voice;
   return (
     <header>
-      <div className="brand">❄ SnowTwin <b>WNY</b></div>
+      <div className="brand">SnowTwin <b>WNY</b></div>
       <div className="clock">
         <span className="t">{fmtClock(state.sim_time_s)}</span>
         <div className="bar"><div style={{ width: `${pct}%` }} /></div>
@@ -184,8 +203,8 @@ function ForecastStatus({ weather, shown }: { weather: ForecastWeather | null; s
   );
 }
 
-function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
-  rate?: number; forecast: boolean; headingDeg?: number;
+function Legend({ rate, forecast, headingDeg, shown, onToggle, summary = false, threshold = 1.5 }: {
+  rate?: number; forecast: boolean; headingDeg?: number; summary?: boolean; threshold?: number;
   shown: boolean; onToggle: (shown: boolean) => void;
 }) {
   const rateLabel = Number.isFinite(rate) ? rate === 0
@@ -195,15 +214,20 @@ function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
   return (
     <div className="legend" role="group" aria-label="Map legend">
       <div className="legend-row">
-        <b title="Estimated snow depth on the road, inches">Road depth (in)</b>
-        {DEPTH_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{v}</span>)}
+        {summary ? <>
+          <b title={`Share of the whole run each road spent above ${threshold} in`}>Time above {threshold}″</b>
+          {UNSAFE_SHARE_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{Math.round(v * 100)}%</span>)}
+        </> : <>
+          <b title="Estimated snow depth on the road, inches">Road depth (in)</b>
+          {DEPTH_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{v}</span>)}
+        </>}
         <span className="sep" />
         <span className="sw" title="Critical corridor (thicker line)"><i className="thick" /> critical</span>
         <span className="sw"><i className="closed" /> closed</span>
         <span className="sw"><i className="vdot heavy" /> heavy</span>
         <span className="sw"><i className="vdot compact" /> compact</span>
         <span className="sw" title="Snow Plan facilities: H hospital, P police, F fire">
-          <i className="fac" style={{ background: "#db2777" }} /><i className="fac" style={{ background: "#2563eb" }} /><i className="fac" style={{ background: "#ea580c" }} /> facilities
+          
         </span>
       </div>
       <div className="legend-row snowfall-legend">
@@ -254,7 +278,7 @@ function Controls({ state, scenarios, network }: any) {
         {state.playback_status === "playing"
           ? <button disabled={busy} onClick={() => ctl("pause")}><Icon name="pause" /> Pause</button>
           : <button className="primary" disabled={busy} onClick={() => ctl("play")}><Icon name="play" /> Play</button>}
-        {[1, 2, 4, 8].map((s) => (
+        {[1, 2, 4, 8, 64].map((s) => (
           <button key={s} disabled={busy} className={state.speed === s ? "sel" : ""} onClick={() => ctl(state.playback_status === "playing" ? "play" : "pause", s)}>{s}×</button>
         ))}
         <button onClick={() => restart(state.scenario.id, sid === FORECAST_SCENARIO ? null : state.scenario.band, currentOverrides(state))} disabled={busy} title="Restart both policies with the same inputs"><Icon name="reset" /> Reset</button>
@@ -286,35 +310,76 @@ function Controls({ state, scenarios, network }: any) {
 
 // [key, short label, tooltip, lower/higher is better, format, shown by default]
 const ROWS: [string, string, string, "low" | "high", (v: any) => string, boolean][] = [
-  ["critical_exposure_min", "Critical exposure (min)", "Minutes critical segments spent above the depth threshold", "low", (v) => v.toFixed(0), true],
-  ["avg_critical_depth_in", "Critical depth (in)", "Average snow depth on critical segments", "low", (v) => v.toFixed(2), true],
-  ["distance_km", "Distance (km)", "Total distance driven", "low", (v) => v.toFixed(1), true],
-  ["inch_km_per_crew_hour", "Cleared / crew-hr", "Snow cleared per active crew-hour (in·km)", "high", (v) => v.toFixed(1), true],
-  ["critical_over_now", "Critical over now", "Critical segments above the threshold right now", "low", (v) => String(v), false],
-  ["exposure_min", "All exposure (min)", "Minutes all segments spent above the threshold", "low", (v) => v.toFixed(0), false],
-  ["deadhead_pct", "Deadhead (%)", "Share of travel spent not plowing", "low", (v) => v.toFixed(0), false],
-  ["services", "Service passes", "Completed plowing passes", "high", (v) => String(v), false],
-  ["reaccumulations", "Re-accumulations", "Segments that filled back in after service", "low", (v) => String(v), false],
+  ["critical_exposure_min", "Unsafe time, critical roads (min)", "Minutes critical segments spent above the depth threshold", "low", (v) => v.toFixed(0), true],
+  ["avg_critical_depth_in", "Snow on critical roads (in)", "Average snow depth on critical segments", "low", (v) => v.toFixed(2), true],
+  ["distance_km", "Distance driven (km)", "Total distance driven", "low", (v) => v.toFixed(1), true],
+  ["inch_km_per_crew_hour", "Snow cleared per crew-hour", "Snow cleared per active crew-hour (in·km)", "high", (v) => v.toFixed(1), true],
+  ["exposure_min", "Unsafe time, all roads (min)", "Minutes all segments spent above the threshold", "low", (v) => v.toFixed(0), false],
+  ["deadhead_pct", "Driving without plowing (%)", "Share of travel spent not plowing", "low", (v) => v.toFixed(0), false],
+  ["services", "Plow passes", "Completed plowing passes", "high", (v) => String(v), false],
+  ["reaccumulations", "Roads snowed in again", "Segments that filled back in after service", "low", (v) => String(v), false],
   ["crew_hours", "Crew-hours", "Active crew-hours", "low", (v) => v.toFixed(1), false],
 ];
 
-function Metrics({ state }: any) {
-  const [all, setAll] = useState(false);
+const KEY_ORDER = ["critical_exposure_min", "exposure_min", "inch_km_per_crew_hour"];
+const KEY_METRICS = new Set(KEY_ORDER);
+
+function Metrics({ state, defaultAll = false, highlight = false }: any) {
+  const [all, setAll] = useState(defaultAll);
   const f = state.policies.fixed.metrics, a = state.policies.adaptive.metrics;
+  // Popup: show the table in its normal order first, then slide the three key rows to the top (FLIP animation).
+  const [promoted, setPromoted] = useState(false);
+  useEffect(() => {
+    if (!highlight) return;
+    const id = setTimeout(() => setPromoted(true), 500);
+    return () => clearTimeout(id);
+  }, [highlight]);
+  const rowEls = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const lastTops = useRef<Record<string, number>>({});
+  const visible = ROWS.filter((r) => all || r[5]);
+  const ordered = highlight && promoted
+    ? [...KEY_ORDER.map((k) => visible.find((r) => r[0] === k)).filter(Boolean) as typeof ROWS,
+       ...visible.filter((r) => !KEY_METRICS.has(r[0]))]
+    : visible;
+  useLayoutEffect(() => {
+    const tops: Record<string, number> = {};
+    for (const [k, el] of Object.entries(rowEls.current)) if (el) tops[k] = el.getBoundingClientRect().top;
+    for (const [k, el] of Object.entries(rowEls.current)) {
+      const prev = lastTops.current[k];
+      if (!el || prev === undefined || prev === tops[k]) continue;
+      el.style.transition = "none";
+      el.style.transform = `translateY(${prev - tops[k]}px)`;
+      void el.getBoundingClientRect();
+      el.style.transition = "transform 650ms cubic-bezier(.2,.8,.2,1)";
+      el.style.transform = "";
+    }
+    lastTops.current = tops;
+  }, [promoted, all]);
   const thr = state.scenario.params.threshold_in;
   return (
     <section>
       <h3 title="Same storm, same fleet, both policies measured side by side">Results</h3>
+      {(() => {
+        const fv = f.critical_exposure_min ?? 0, av = a.critical_exposure_min ?? 0;
+        if (!fv) return null;
+        const pct = Math.round(((av - fv) / fv) * 100);
+        return (
+          <div className="hero" title="Critical exposure: minutes Main Street and hospital approaches spent above the threshold">
+            <span className={pct <= 0 ? "hero-num" : "hero-num worse"}>{pct > 0 ? "+" : ""}{pct}%</span>
+            <span className="hero-label">{pct <= 0 ? "less" : "more"} unsafe time on Main St and hospital roads</span>
+          </div>
+        );
+      })()}
       <table className="metrics">
         <thead><tr><th /><th style={{ color: FIXED }}>Baseline</th><th style={{ color: ADAPT }}>Adaptive</th><th>Δ</th></tr></thead>
         <tbody>
-          {ROWS.filter((r) => all || r[5]).map(([k, label, tip, dir, fmt]) => {
+          {ordered.map(([k, label, tip, dir, fmt]) => {
             const fv = f[k] ?? 0, av = a[k] ?? 0;
             const better = dir === "low" ? av < fv : av > fv;
             const same = av === fv;
             const delta = fv !== 0 ? `${av - fv > 0 ? "+" : ""}${(((av - fv) / Math.abs(fv)) * 100).toFixed(0)}%` : `${av - fv > 0 ? "+" : ""}${fmt(av - fv)}`;
             return (
-              <tr key={k}>
+              <tr key={k} ref={(el) => { rowEls.current[k] = el; }} className={highlight && KEY_METRICS.has(k) ? "key-row" : undefined}>
                 <td title={tip}>{label}</td><td>{fmt(fv)}</td><td>{fmt(av)}</td>
                 <td className={same ? "" : better ? "good" : "bad"}>{same ? "—" : delta}</td>
               </tr>
@@ -325,7 +390,7 @@ function Metrics({ state }: any) {
       <div className="row small between">
         <button className="link" onClick={() => setAll(!all)}>{all ? "Fewer metrics" : `More metrics (${ROWS.length - ROWS.filter((r) => r[5]).length})`}</button>
         <span className="muted" title={`Simulated results. The ${thr} in threshold is illustrative, not a safety standard. Run ${state.run_id} · v${state.scenario_version}`}>
-          Simulated · threshold {thr} in ⓘ
+          Simulated. Unsafe means more than {thr} in.
         </span>
       </div>
     </section>
@@ -358,15 +423,12 @@ function Camera({ state, frames, network, reloadFrames, selected, onSelect }: an
     : "511NY key not configured; showing stored media";
   return (
     <section>
-      <h3 title="Or click a camera marker on the map">Cameras</h3>
-      <div className="thumbs">
-        {frames.map((f: any) => <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""}
-          onClick={() => onSelect(f.frame_id)}><Icon name={f.media_type === "video" ? "video" : "image"} /> {f.title}</button>)}
-      </div>
+      <h3>Cameras</h3>
+      <p className="muted small" style={{ margin: "0 0 6px" }}>Click a camera on the map to see its footage.</p>
       <details className="small"><summary>Camera sources & uploads</summary>
       <div className="row small" style={{ alignItems: "center", marginTop: 6 }}>
         <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); onSelect(f.frame_id); }} />
-        <button onClick={refresh511} disabled={!ny.configured || refreshing} title={nyTip}>{refreshing ? "Refreshing…" : "↻ 511NY"}</button>
+        <button onClick={refresh511} disabled={!ny.configured || refreshing} title={nyTip}>{refreshing ? "Refreshing…" : "Refresh 511NY"}</button>
         {ny.last_error && <span className="bad">511NY error</span>}
       </div>
       {msg && <div className="small">{msg}</div>}
@@ -386,7 +448,8 @@ function cameraStates(state: any, frames: any[]) {
     if (x.reference_only) { out[f.frame_id] = "reference"; continue; }
     const d = state.camera?.decisions?.[cameraDecisionKey(f, x)];
     const kind = x.proposed_effect?.kind;
-    out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
+    const triggered = !!state.camera?.triggered?.[f.frame_id];
+    out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : triggered && kind && kind !== "none" ? "pending" : "clear";
   }
   return out;
 }
@@ -418,11 +481,11 @@ function Decision({ state, analysis, frame, network }: any) {
         {d ? (
           <span className={`small ${d.decision === "approve" ? "good" : "muted"}`}
                 title={d.decision === "approve" ? "Applied to both policies at the same tick" : undefined}>
-            {d.decision === "approve" ? "✔ Approved" : "✖ Rejected"} {fmtClock(d.sim_time_s)}
+            {d.decision === "approve" ? "Approved" : "Rejected"} {fmtClock(d.sim_time_s)}
           </span>
         ) : <>
-          <button className="approve" onClick={() => decide("approve")} title="Apply to both policies">✔ Approve</button>
-          <button className="reject" onClick={() => decide("reject")}>✖</button>
+          <button className="approve" onClick={() => decide("approve")} title="Apply to both policies">Approve</button>
+          <button className="reject" onClick={() => decide("reject")}>Reject</button>
         </>}
       </div>
       {msg && <div className="bad small">{msg}</div>}
@@ -471,7 +534,8 @@ function AnalysisView({ analysis }: any) {
 
 function Proposals({ state, frames, network, onOpen }: any) {
   const items = (state.camera?.analyses || [])
-    .filter((a: any) => a.status === "done" && !a.reference_only && a.proposed_effect && a.proposed_effect.kind !== "none")
+    .filter((a: any) => a.status === "done" && !a.reference_only && a.proposed_effect && a.proposed_effect.kind !== "none"
+      && state.camera?.triggered?.[a.frame_id])
     .map((a: any) => ({ a, f: frames.find((f: any) => f.frame_id === a.frame_id) }))
     .filter((x: any) => x.f);
   if (!items.length) return null;
@@ -783,9 +847,9 @@ function History({ state, onShow, showing }: any) {
 }
 
 const BASELINE_LABEL: Record<string, string> = {
-  city_priority: "CITY PUBLISHED PRIORITY",
-  service_history: "SERVICE HISTORY (oldest first)",
-  fixed_loop: "FIXED SERVICE LOOP",
+  city_priority: "City snow plan routes",
+  service_history: "Oldest-plowed first",
+  fixed_loop: "Fixed loop",
 };
 
 function currentOverrides(state: any) {

@@ -6,7 +6,15 @@
   "initial_depth_in": 0.0,
   "band": null,
   "fleet": [
-    {"id": "P1", "type": "heavy_plow", "start": "BNMC"},
-    {"id": "B1", "type": "compact_blower", "start": "ECMC"}
+    {
+      "id": "P1",
+      "type": "heavy_plow",
+      "start": "BNMC"
+    },
+    {
+      "id": "B1",
+      "type": "compact_blower",
+      "start": "ECMC"
+    }
   ]
 }

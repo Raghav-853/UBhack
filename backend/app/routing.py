@@ -86,19 +86,65 @@ def choose_fixed(world: "World", vehicle: "Vehicle", t: float, dist: dict):
 
 
 def _choose_city_priority(world, vehicle, t, dist):
-    """Serve the highest published tier that needs work; within a tier take the nearest segment, the way a
-    crew works contiguously along its route instead of jumping across the corridor. No storm look-ahead."""
-    cands = _candidates(world, vehicle, t, dist)
-    if not cands:
+    """Pre-determined route (Snow Plan p. 8): follow the vehicle's fixed route in order, plan tiers first.
+    Skip stops that do not need plowing; no corridor-wide re-optimization, no storm look-ahead."""
+    route = world.route_order.setdefault(vehicle.id, build_city_route(world, vehicle))
+    if not route:
         return None, None
-    c = min(cands, key=lambda c: (world.net.segments[c[0]].tier, c[3], c[0]))
-    seg = world.net.segments[c[0]]
-    return c, {
-        "policy": "fixed", "baseline": "city_priority",
-        "reason": f"Published priority: {seg.city_class.replace('_', ' ')} (tier {seg.tier}) first, nearest within tier",
-        "depth_in": round(world.depth[c[0]], 2), "critical": seg.critical, "tier": seg.tier,
-        "travel_s": round(c[3]), "service_s": round(c[4]),
-    }
+    cands = {c[0]: c for c in _candidates(world, vehicle, t, dist)}
+    key = ("route", vehicle.id)
+    ptr = world.fixed_ptr.get(key, 0)
+    n = len(route)
+    for i in range(n):
+        idx = (ptr + i) % n
+        sid = route[idx]
+        if sid in cands:
+            world.fixed_ptr[key] = (idx + 1) % n
+            c, seg = cands[sid], world.net.segments[sid]
+            return c, {
+                "policy": "fixed", "baseline": "city_priority",
+                "reason": f"Pre-determined route stop {idx + 1}/{n} ({seg.city_class.replace('_', ' ')}, tier {seg.tier})",
+                "depth_in": round(world.depth[sid], 2), "critical": seg.critical, "tier": seg.tier,
+                "route_stop": idx + 1, "travel_s": round(c[3]), "service_s": round(c[4]),
+            }
+    return None, None
+
+
+_ROUTE_CACHE: dict = {}
+
+
+def build_city_route(world: "World", vehicle: "Vehicle") -> list[str]:
+    """Fixed route built once: plan tier 1, then 2, then 3; within a tier chain to the nearest unvisited
+    segment from the end of the previous one. Static geometry only (no snow information), so it is cached."""
+    net = world.net
+    key = (net.file_hash, vehicle.vtype, vehicle.node, tuple(s.tier for s in net.segments.values()))
+    if key in _ROUTE_CACHE:
+        return list(_ROUTE_CACHE[key])
+    segs = [s for s in net.segments.values() if net.can_service(vehicle.vtype, s)]
+    g = nx.Graph()
+    for s in net.segments.values():
+        if net.can_traverse(vehicle.vtype, s):
+            if not g.has_edge(s.u, s.v) or g[s.u][s.v]["w"] > s.length_m:
+                g.add_edge(s.u, s.v, w=s.length_m)
+    dist_from = {}
+
+    def d(node):
+        if node not in dist_from:
+            dist_from[node] = nx.single_source_dijkstra_path_length(g, node, weight="w") if node in g else {}
+        return dist_from[node]
+
+    route, here = [], vehicle.node
+    for tier in sorted({s.tier for s in segs}):
+        todo = {s.id for s in segs if s.tier == tier}
+        while todo:
+            dh = d(here)
+            best = min(todo, key=lambda sid: (min(dh.get(net.segments[sid].u, 1e18), dh.get(net.segments[sid].v, 1e18)), sid))
+            seg = net.segments[best]
+            here = seg.v if dh.get(seg.u, 1e18) <= dh.get(seg.v, 1e18) else seg.u
+            route.append(best)
+            todo.remove(best)
+    _ROUTE_CACHE[key] = tuple(route)
+    return route
 
 
 def _choose_service_history(world, vehicle, t, dist):

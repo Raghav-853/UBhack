@@ -16,28 +16,54 @@
     "Facility access uses geocoded hospitals, police and fire stations from the plan within 200 m of a segment (data/critical_facilities.json); warming centers are not listed with addresses and are not modeled."
   ],
   "primary": [
+    "Amherst Street",
+    "Bailey Avenue",
+    "Berkshire Avenue",
     "Best Street",
     "Delaware Avenue",
+    "East Amherst Street",
     "East Delavan Avenue",
     "East Ferry Street",
     "East Utica Street",
     "Fillmore Avenue",
     "Grider Street",
+    "Hertel Avenue",
     "Jefferson Avenue",
     "Kensington Avenue",
     "Main Street",
     "Michigan Avenue",
     "North Street",
-    "Summer Street"
+    "Parkside Avenue",
+    "Starin Avenue",
+    "Summer Street",
+    "West Ferry Street",
+    "West Utica Street",
+    "Winspear Avenue"
   ],
   "secondary": [
+    "Cornwall Avenue",
     "Deerfield Avenue",
     "Dewey Avenue",
-    "East North Street"
+    "East North Street",
+    "Hill Street",
+    "Leroy Avenue",
+    "Wyoming Avenue"
   ],
   "matched_entries": {
+    "Amherst Street": [
+      "Amherst St Niagara St Main St"
+    ],
+    "Bailey Avenue": [
+      "Bailey Ave Main St S Park Ave"
+    ],
+    "Berkshire Avenue": [
+      "Berkshire Ave E Amherst St Bailey Ave"
+    ],
     "Best Street": [
       "Best St Main St Walden Ave"
+    ],
+    "Cornwall Avenue": [
+      "Cornwall Ave E Delavan Ave E Ferry St"
     ],
     "Deerfield Avenue": [
       "Deerfield Ave E Delavan Ave Kensington Ave"
@@ -47,6 +73,9 @@
     ],
     "Dewey Avenue": [
       "Dewey Ave Main St Castle Pl"
+    ],
+    "East Amherst Street": [
+      "E Amherst St Main St Bailey Ave"
     ],
     "East Delavan Avenue": [
       "E Delavan Ave Main St City line"
@@ -66,11 +95,20 @@
     "Grider Street": [
       "Grider St E Delavan Ave Leroy Ave"
     ],
+    "Hertel Avenue": [
+      "Hertel Ave Thruway Main St"
+    ],
+    "Hill Street": [
+      "Hill St Rodney Ave Leroy Ave"
+    ],
     "Jefferson Avenue": [
       "Jefferson Ave Swan St Main St"
     ],
     "Kensington Avenue": [
       "Kensington Ave Main St City line"
+    ],
+    "Leroy Avenue": [
+      "Leroy Ave Main St Kensington Ave"
     ],
     "Main Street": [
       "Main St S Park Ave Bailey Ave"
@@ -81,21 +119,43 @@
     "North Street": [
       "North St Richmond Ave Main St"
     ],
+    "Parkside Avenue": [
+      "Parkside Ave Humboldt Pkwy Starin Ave"
+    ],
+    "Starin Avenue": [
+      "Starin Ave Parkside Ave Kenmore Ave",
+      "Starin Ave Amherst St Parkside Ave"
+    ],
     "Summer Street": [
       "Summer St Richmond Ave Main St"
+    ],
+    "West Ferry Street": [
+      "W Ferry St Thruway Main St"
+    ],
+    "West Utica Street": [
+      "W Utica St Massachusetts Ave Main St"
+    ],
+    "Winspear Avenue": [
+      "Winspear Ave Main St Bailey Ave"
+    ],
+    "Wyoming Avenue": [
+      "Wyoming Ave E Delavan Ave Kensington Ave"
     ]
   },
   "bus_routes": [
-    "Main Street",
+    "Amherst Street",
+    "Best Street",
+    "Delaware Avenue",
+    "East Delavan Avenue",
     "East Ferry Street",
+    "East Utica Street",
     "Fillmore Avenue",
     "Grider Street",
-    "Kensington Avenue",
-    "East Delavan Avenue",
+    "High Street",
     "Jefferson Avenue",
+    "Kensington Avenue",
+    "Main Street",
     "Michigan Avenue",
-    "East Utica Street",
-    "Best Street",
     "Summer Street"
   ],
   "bus_routes_source": "NFTA Priority Clearing Bus Routes, Snow Plan pp. 58-60 (matched by street name; extents not checked per segment)",

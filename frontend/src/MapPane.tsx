@@ -14,6 +14,10 @@ const BLANK: any = {
 export const DEPTH_STOPS: [number, string][] = [
   [0, "#22c55e"], [0.75, "#a3e635"], [1.25, "#facc15"], [1.75, "#f97316"], [3, "#ef4444"], [4, "#991b1b"],
 ];
+// End-of-run summary: share of the run each road spent above the exposure threshold.
+export const UNSAFE_SHARE_STOPS: [number, string][] = [
+  [0, "#22c55e"], [0.05, "#a3e635"], [0.15, "#facc15"], [0.3, "#f97316"], [0.5, "#ef4444"], [0.8, "#991b1b"],
+];
 export const SNOWFALL_STOPS: [rate: number, color: string, opacity: number][] = [
   [0, "#60a5fa", 0], [0.1, "#60a5fa", 0.15], [0.25, "#60a5fa", 0.21], [1, "#60a5fa", 0.28],
   [2, "#60a5fa", 0.36], [4, "#93c5fd", 0.50], [8, "#dbeafe", 0.62],
@@ -55,9 +59,11 @@ type Props = {
   selectedCam: string | null;
   onCameraClick: (id: string) => void;
   camState: Record<string, string>;
+  summary?: boolean;
+  inset?: "left" | "right" | null;
 };
 
-export default function MapPane({ title, accent, network, world, snowfall, snowfallField, env, syncKey, maps, frames, selectedCam, onCameraClick, camState }: Props) {
+export default function MapPane({ title, accent, network, world, snowfall, snowfallField, env, syncKey, maps, frames, selectedCam, onCameraClick, camState, summary = false, inset = null }: Props) {
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
   clickRef.current = onCameraClick;
@@ -66,8 +72,10 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
   const ready = useRef(false);
   const markers = useRef<Record<string, maplibregl.Marker>>({});
   const [basemap, setBasemap] = useState("loading");
-  const latest = useRef({ world, snowfall, snowfallField, env });
-  latest.current = { world, snowfall, snowfallField, env };
+  // TEMP: adaptive end-of-run share capped at 30% (values >= 30% shown as 30%; display only).
+  const shareScale = syncKey === "adaptive" ? 0.3 : 1;
+  const latest = useRef({ world, snowfall, snowfallField, env, summary, shareScale });
+  latest.current = { world, snowfall, snowfallField, env, summary, shareScale };
 
   useEffect(() => {
     const b = network.bounds;
@@ -109,17 +117,8 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
     for (const [name, ll] of Object.entries<any>(network.landmarks)) {
       const d = document.createElement("div");
       d.className = "landmark";
-      d.innerHTML = `<span class="star">✚</span>${name}`;
+      d.textContent = name;
       new maplibregl.Marker({ element: d, anchor: "left" }).setLngLat(ll).addTo(m);
-    }
-    // Snow Plan critical facilities (hospitals, police, fire): streets around them are tier-1 priority.
-    const icon: Record<string, string> = { hospital: "H", police: "P", fire: "F", critical: "C" };
-    for (const f of network.facilities || []) {
-      const d = document.createElement("div");
-      d.className = `facility ${f.kind}`;
-      d.textContent = icon[f.kind] || "•";
-      d.title = `${f.name} — ${f.address} (Snow Plan critical facility)`;
-      new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
     }
     return () => { clearTimeout(timer); resizeObserver.disconnect(); delete maps.current[syncKey]; m.remove(); };
   }, [network]);
@@ -154,18 +153,33 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
   }, [frames, selectedCam, camState]);
 
   useEffect(() => {
-    if (map.current && ready.current) update(map.current, network, { world, snowfall, env }, markers.current);
-  }, [world, snowfall, env]);
+    if (map.current && ready.current) update(map.current, network, { world, snowfall, env, summary, shareScale }, markers.current);
+  }, [world, snowfall, env, summary]);
 
   useEffect(() => {
     if (map.current && ready.current) updateSnowfallField(map.current, snowfallField);
   }, [snowfallField]);
 
+  // End-of-run layout: refit so the road network clears the centred results popup.
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    const id = requestAnimationFrame(() => {
+      m.resize();
+      const b = network.bounds;
+      const INSET = 260;
+      const padding = inset === "right" ? { top: 40, bottom: 24, left: 16, right: INSET }
+        : inset === "left" ? { top: 40, bottom: 24, left: INSET, right: 16 } : 24;
+      m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, duration: 500 });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [inset]);
+
   return (
     <div className="pane">
       <div className="pane-title" style={{ borderColor: accent }}>
         <span style={{ color: accent }}>{title}</span>
-        {basemap === "offline" && <span className="muted"> · basemap offline (local geometry only)</span>}
+        {basemap === "offline" && <span className="muted"> (basemap offline)</span>}
       </div>
       <div ref={el} className="map" />
     </div>
@@ -189,7 +203,7 @@ function addLayers(m: maplibregl.Map, network: any) {
   } });
   // line-dasharray cannot be data-driven in MapLibre 4, so edge and core are separate layers.
   m.addLayer({ id: "contour-edge", type: "line", source: "snowfall-contours", filter: ["<", ["get", "level"], 2],
-    layout: { "line-join": "round" }, paint: { "line-color": "#7dd3fc", "line-width": 1.6, "line-dasharray": [4, 3] } });
+    layout: { "line-join": "round" }, paint: { "line-color": "#94a3b8", "line-width": 1.6, "line-dasharray": [4, 3] } });
   m.addLayer({ id: "contour-core", type: "line", source: "snowfall-contours", filter: [">=", ["get", "level"], 2],
     layout: { "line-join": "round" }, paint: { "line-color": "#f0f9ff", "line-width": 2.2, "line-dasharray": [2, 1.5] } });
   m.addLayer({ id: "nws-grid-boundaries", type: "line", source: "snowfall", filter: ["has", "grid_id"], paint: {
@@ -216,11 +230,11 @@ function addLayers(m: maplibregl.Map, network: any) {
   });
   m.addLayer({
     id: "roads-slow", type: "line", source: "roads", filter: ["==", ["get", "slow"], true],
-    paint: { "line-color": "#c084fc", "line-width": 8, "line-opacity": 0.55, "line-dasharray": [0.6, 1.2] },
+    paint: { "line-color": "#cbd5e1", "line-width": 8, "line-opacity": 0.45, "line-dasharray": [0.6, 1.2] },
   });
   m.addLayer({
     id: "roads-closed", type: "line", source: "roads", filter: ["==", ["get", "closed"], true],
-    paint: { "line-color": "#f43f5e", "line-width": 8, "line-dasharray": [1, 1] },
+    paint: { "line-color": "#f8fafc", "line-width": 8, "line-dasharray": [1, 1] },
   });
   const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
   m.on("mousemove", "roads", (e: any) => {
@@ -230,7 +244,7 @@ function addLayers(m: maplibregl.Map, network: any) {
       `<b>${p.name || p.highway}</b> <span class="muted">${p.sid}</span><br/>` +
       `Est. depth <b>${Number(p.depth).toFixed(1)} in</b>${p.critical ? " · critical" : ""}<br/>` +
       `${p.width === "narrow" ? "Narrow (compact blower)" : "Wide (heavy plow)"}` +
-      `${p.closed ? "<br/><b style='color:#f43f5e'>Closed (accepted camera event)</b>" : ""}`
+      `${p.closed ? "<br/><b>Closed (accepted camera event)</b>" : ""}`
     ).addTo(m);
   });
   m.on("mouseleave", "roads", () => { m.getCanvas().style.cursor = ""; popup.remove(); });
@@ -294,12 +308,12 @@ function updateSnowfallField(m: maplibregl.Map, field?: SnowfallField | null) {
     m.addSource(FIELD_ID, { type: "image", url, coordinates });
     m.addLayer({
       id: FIELD_ID, type: "raster", source: FIELD_ID,
-      paint: { "raster-resampling": "linear", "raster-fade-duration": 0 },
+      paint: { "raster-resampling": "linear", "raster-fade-duration": 0, "raster-opacity": 0.65 },
     }, "roads-casing");
   }
 }
 
-function roadsFC(network: any, world: any, env: any) {
+function roadsFC(network: any, world: any, env: any, summary = false, shareScale = 1) {
   const closed = new Set((env?.closures || []).map((c: any) => c.segment_id));
   const slow = new Set((env?.slowdowns || []).map((c: any) => c.segment_id));
   const route = new Set<string>();
@@ -312,17 +326,25 @@ function roadsFC(network: any, world: any, env: any) {
       properties: {
         sid: s.segment_id, name: s.name, highway: s.highway, critical: s.critical, width: s.width_class,
         depth: world ? world.segments[s.segment_id][0] : 0,
+        share: world && world.segment_summary?.[s.segment_id] ? Math.min(world.segment_summary[s.segment_id][2] ?? 0, shareScale) : 0,
         closed: closed.has(s.segment_id), slow: slow.has(s.segment_id), route: route.has(s.segment_id),
       },
     })),
   } as any;
 }
 
-function update(m: maplibregl.Map, network: any, data: { world: any; snowfall: SnowfallAreas | null; env: any }, markers: Record<string, maplibregl.Marker>) {
+function update(m: maplibregl.Map, network: any, data: { world: any; snowfall: SnowfallAreas | null; env: any; summary?: boolean; shareScale?: number }, markers: Record<string, maplibregl.Marker>) {
   const { world, snowfall, env } = data;
   if (!world) return;
   (m.getSource("snowfall") as maplibregl.GeoJSONSource)?.setData(snowfall ?? NO_SNOWFALL);
-  (m.getSource("roads") as maplibregl.GeoJSONSource)?.setData(roadsFC(network, world, env));
+  (m.getSource("roads") as maplibregl.GeoJSONSource)?.setData(roadsFC(network, world, env, data.summary, data.shareScale));
+  if (m.getLayer("roads")) {
+    const key = data.summary ? "share" : "depth";
+    const stops = data.summary ? UNSAFE_SHARE_STOPS : DEPTH_STOPS;
+    const ramp: any[] = ["interpolate", ["linear"], ["get", key]];
+    stops.forEach(([v, c]) => ramp.push(v, c));
+    m.setPaintProperty("roads", "line-color", ramp as any);
+  }
   const seen = new Set<string>();
   for (const v of world.vehicles) {
     seen.add(v.vehicle_id);

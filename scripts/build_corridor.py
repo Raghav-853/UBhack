@@ -36,16 +36,16 @@ LANDMARKS = {  # geocoded from OpenStreetMap/Nominatim
 }
 # Corridor polygon (lat, lon): Main Street spine plus the Masten/Kensington area toward ECMC.
 CORRIDOR = [
-    (42.9580, -78.8145), (42.9580, -78.8245), (42.9450, -78.8400), (42.9250, -78.8565),
-    (42.9050, -78.8745), (42.8960, -78.8765), (42.8960, -78.8615), (42.9110, -78.8480),
-    (42.9180, -78.8250), (42.9320, -78.8195), (42.9450, -78.8145),
+    (42.9600, -78.8100), (42.9600, -78.8300), (42.9450, -78.8480), (42.9250, -78.8640),
+    (42.9050, -78.8800), (42.8950, -78.8800), (42.8950, -78.8560), (42.9100, -78.8380),
+    (42.9180, -78.8200), (42.9320, -78.8150), (42.9450, -78.8100),
 ]
 WIDE = {"primary", "secondary", "tertiary", "trunk", "primary_link", "secondary_link", "tertiary_link"}
 NARROW = {"residential", "unclassified", "living_street"}
 TIER = {"primary": 1, "trunk": 1, "primary_link": 1, "secondary": 2, "secondary_link": 2,
         "tertiary": 2, "tertiary_link": 2}
 
-RES_ECMC_M = 620          # residential pocket around ECMC (compact-blower territory)
+RES_ECMC_M = 900          # residential pocket around ECMC (compact-blower territory)
 CRITICAL_HOSPITAL_M = 450
 KEEP_STUB_NEAR_LANDMARK_M = 450
 # Streets added because archived camera footage shows them: name -> (min_lat, max_lat).
