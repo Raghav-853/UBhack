@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import type { Coordinates, ExpressionSpecification } from "maplibre-gl";
+import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 const STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
@@ -12,13 +14,39 @@ const BLANK: any = {
 export const DEPTH_STOPS: [number, string][] = [
   [0, "#22c55e"], [0.75, "#a3e635"], [1.25, "#facc15"], [1.75, "#f97316"], [3, "#ef4444"], [4, "#991b1b"],
 ];
+export const SNOWFALL_STOPS: [rate: number, color: string, opacity: number][] = [
+  [0, "#60a5fa", 0], [0.1, "#60a5fa", 0.15], [0.25, "#60a5fa", 0.21], [1, "#60a5fa", 0.28],
+  [2, "#60a5fa", 0.36], [4, "#93c5fd", 0.50], [8, "#dbeafe", 0.62],
+];
+const snowfallColor: ExpressionSpecification = [
+  "interpolate", ["linear"], ["number", ["get", "rate_in_hr"], 0], ...SNOWFALL_STOPS.flatMap(([rate, color]) => [rate, color]),
+];
+const snowfallOpacity: ExpressionSpecification = [
+  "interpolate", ["linear"], ["number", ["get", "rate_in_hr"], 0], ...SNOWFALL_STOPS.flatMap(([rate, , opacity]) => [rate, opacity]),
+];
+export type SnowfallAreas = FeatureCollection<Polygon | MultiPolygon, { rate_in_hr: number; grid_id?: string; outline?: boolean }>;
+export type SnowfallField = {
+  corners: [number, number][];
+  width: number;
+  height: number;
+  rates_in_hr: number[];
+  max_rate_in_hr: number;
+};
+const NO_SNOWFALL: SnowfallAreas = { type: "FeatureCollection", features: [] };
+const FIELD_ID = "snowfall-field";
+const fieldImages = new WeakMap<SnowfallField, string>();
+const snowfallRgbaStops = SNOWFALL_STOPS.map(([rate, color, opacity]) => {
+  const rgb = Number.parseInt(color.slice(1), 16);
+  return [rate, rgb >> 16, (rgb >> 8) & 255, rgb & 255, opacity * 255];
+});
 
 type Props = {
   title: string;
   accent: string;
   network: any;
   world: any;
-  band: any;
+  snowfall: SnowfallAreas | null;
+  snowfallField?: SnowfallField | null;
   env: any;
   syncKey: string;
   maps: React.MutableRefObject<Record<string, maplibregl.Map>>;
@@ -28,7 +56,7 @@ type Props = {
   camState: Record<string, string>;
 };
 
-export default function MapPane({ title, accent, network, world, band, env, syncKey, maps, frames, selectedCam, onCameraClick, camState }: Props) {
+export default function MapPane({ title, accent, network, world, snowfall, snowfallField, env, syncKey, maps, frames, selectedCam, onCameraClick, camState }: Props) {
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
   clickRef.current = onCameraClick;
@@ -37,8 +65,8 @@ export default function MapPane({ title, accent, network, world, band, env, sync
   const ready = useRef(false);
   const markers = useRef<Record<string, maplibregl.Marker>>({});
   const [basemap, setBasemap] = useState("loading");
-  const latest = useRef({ world, band, env });
-  latest.current = { world, band, env };
+  const latest = useRef({ world, snowfall, snowfallField, env });
+  latest.current = { world, snowfall, snowfallField, env };
 
   useEffect(() => {
     const b = network.bounds;
@@ -66,6 +94,7 @@ export default function MapPane({ title, accent, network, world, band, env, sync
       addLayers(m, network);
       ready.current = true;
       update(m, network, latest.current, markers.current);
+      updateSnowfallField(m, latest.current.snowfallField);
     });
     // camera sync between the paired maps
     m.on("move", (e: any) => {
@@ -100,7 +129,7 @@ export default function MapPane({ title, accent, network, world, band, env, sync
         camMarkers.current[f.frame_id] = mk;
       }
       mk.setLngLat(f.lonlat);
-      mk.getElement().title = f.title;
+      mk.getElement().title = camState[f.frame_id] === "reference" ? f.title + " · Reference only" : f.title;
       mk.getElement().classList.toggle("sel", f.frame_id === selectedCam);
       mk.getElement().dataset.state = camState?.[f.frame_id] || "";
     }
@@ -108,8 +137,12 @@ export default function MapPane({ title, accent, network, world, band, env, sync
   }, [frames, selectedCam, camState]);
 
   useEffect(() => {
-    if (map.current && ready.current) update(map.current, network, { world, band, env }, markers.current);
-  }, [world, band, env]);
+    if (map.current && ready.current) update(map.current, network, { world, snowfall, env }, markers.current);
+  }, [world, snowfall, env]);
+
+  useEffect(() => {
+    if (map.current && ready.current) updateSnowfallField(map.current, snowfallField);
+  }, [snowfallField]);
 
   return (
     <div className="pane">
@@ -124,10 +157,17 @@ export default function MapPane({ title, accent, network, world, band, env, sync
 
 function addLayers(m: maplibregl.Map, network: any) {
   if (m.getSource("roads")) return;
-  m.addSource("band", { type: "geojson", data: emptyFC() });
+  m.addSource("snowfall", { type: "geojson", data: NO_SNOWFALL });
   m.addSource("roads", { type: "geojson", data: roadsFC(network, null, null) });
-  m.addLayer({ id: "band-fill", type: "fill", source: "band", paint: { "fill-color": "#60a5fa", "fill-opacity": 0.16 } });
-  m.addLayer({ id: "band-line", type: "line", source: "band", paint: { "line-color": "#93c5fd", "line-opacity": 0.6, "line-dasharray": [2, 2] } });
+  m.addLayer({ id: "snowfall-fill", type: "fill", source: "snowfall", paint: {
+    "fill-color": snowfallColor, "fill-opacity": snowfallOpacity, "fill-antialias": false,
+  } });
+  m.addLayer({ id: "band-line", type: "line", source: "snowfall", filter: ["==", ["get", "outline"], true], paint: {
+    "line-color": "#93c5fd", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
+  } });
+  m.addLayer({ id: "nws-grid-boundaries", type: "line", source: "snowfall", filter: ["has", "grid_id"], paint: {
+    "line-color": "#9fb1cb", "line-opacity": 0.7, "line-width": 1.2, "line-dasharray": [3, 2],
+  } });
   m.addLayer({
     id: "roads-casing", type: "line", source: "roads", filter: ["==", ["get", "critical"], true],
     layout: { "line-cap": "round", "line-join": "round" },
@@ -169,8 +209,57 @@ function addLayers(m: maplibregl.Map, network: any) {
   m.on("mouseleave", "roads", () => { m.getCanvas().style.cursor = ""; popup.remove(); });
 }
 
-function emptyFC() {
-  return { type: "FeatureCollection", features: [] } as any;
+function snowfallPixels(rates: number[]): Uint8ClampedArray {
+  const pixels = new Uint8ClampedArray(rates.length * 4);
+  const last = snowfallRgbaStops.length - 1;
+  for (let i = 0; i < rates.length; i++) {
+    const rate = rates[i];
+    if (!Number.isFinite(rate) || rate <= 0) continue;
+    const upper = snowfallRgbaStops.findIndex(([stop], j) => j > 0 && rate <= stop);
+    const to = snowfallRgbaStops[upper < 0 ? last : upper];
+    const from = upper < 0 ? to : snowfallRgbaStops[upper - 1];
+    const ratio = upper < 0 ? 0 : (rate - from[0]) / (to[0] - from[0]);
+    for (let channel = 1; channel <= 4; channel++) {
+      pixels[i * 4 + channel - 1] = from[channel] + (to[channel] - from[channel]) * ratio;
+    }
+  }
+  return pixels;
+}
+
+function updateSnowfallField(m: maplibregl.Map, field?: SnowfallField | null) {
+  const source = m.getSource<maplibregl.ImageSource>(FIELD_ID);
+  if (!field || !(field.max_rate_in_hr > 0) || field.corners.length !== 4 ||
+    !Number.isInteger(field.width) || field.width <= 0 || !Number.isInteger(field.height) ||
+    field.height <= 0 || field.rates_in_hr.length !== field.width * field.height) {
+    if (source) m.setLayoutProperty(FIELD_ID, "visibility", "none");
+    return;
+  }
+  let url = fieldImages.get(field);
+  if (!url) {
+    const canvas = document.createElement("canvas");
+    canvas.width = field.width;
+    canvas.height = field.height;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const image = context.createImageData(field.width, field.height);
+    image.data.set(snowfallPixels(field.rates_in_hr));
+    context.putImageData(image, 0, 0);
+    url = canvas.toDataURL("image/png");
+    fieldImages.set(field, url);
+  }
+  const coordinates = field.corners as Coordinates;
+  if (source) {
+    if (source.url !== url || coordinates.some(([lon, lat], i) => lon !== source.coordinates[i][0] || lat !== source.coordinates[i][1])) {
+      source.updateImage({ url, coordinates });
+    }
+    m.setLayoutProperty(FIELD_ID, "visibility", "visible");
+  } else {
+    m.addSource(FIELD_ID, { type: "image", url, coordinates });
+    m.addLayer({
+      id: FIELD_ID, type: "raster", source: FIELD_ID,
+      paint: { "raster-resampling": "linear", "raster-fade-duration": 0 },
+    }, "roads-casing");
+  }
 }
 
 function roadsFC(network: any, world: any, env: any) {
@@ -192,18 +281,11 @@ function roadsFC(network: any, world: any, env: any) {
   } as any;
 }
 
-function update(m: maplibregl.Map, network: any, data: any, markers: Record<string, maplibregl.Marker>) {
-  const { world, band, env } = data;
+function update(m: maplibregl.Map, network: any, data: { world: any; snowfall: SnowfallAreas | null; env: any }, markers: Record<string, maplibregl.Marker>) {
+  const { world, snowfall, env } = data;
   if (!world) return;
+  (m.getSource("snowfall") as maplibregl.GeoJSONSource)?.setData(snowfall ?? NO_SNOWFALL);
   (m.getSource("roads") as maplibregl.GeoJSONSource)?.setData(roadsFC(network, world, env));
-  if (band?.polygon && band.rate_in_hr > 0) {
-    (m.getSource("band") as maplibregl.GeoJSONSource)?.setData({
-      type: "FeatureCollection",
-      features: [{ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[...band.polygon, band.polygon[0]]] } }],
-    } as any);
-  } else {
-    (m.getSource("band") as maplibregl.GeoJSONSource)?.setData(emptyFC());
-  }
   const seen = new Set<string>();
   for (const v of world.vehicles) {
     seen.add(v.vehicle_id);

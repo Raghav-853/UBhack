@@ -10,10 +10,15 @@ import threading
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .network import DATA, VEHICLE_TYPES, Network, point_along
 from . import routing
+
+if TYPE_CHECKING:
+    from .nws import NWSForecast
 
 SUBSTEP_S = 10.0
 SAMPLE_EVERY_S = 60.0
@@ -35,7 +40,18 @@ DEFAULT_PARAMS = {
 
 # ---------------------------------------------------------------- storm band
 class Band:
-    """Synthetic rectangular lake-effect band that drifts and wobbles across the corridor."""
+    """Synthetic snowfall cells moving downwind inside a shifting lake-effect band."""
+
+    MODEL = "advecting-cells-regional-v2"
+    CELL_SPEED_MPS = 12.0
+    CELL_SPACING_M = 7000.0
+    # Offsets and radii in metres from the corridor center. These synthetic
+    # showers are independent of the heavy band's sideways wobble.
+    REGIONAL_SHOWERS = (
+        (-5000, -4000, 10000, 7200),
+        (4000, 6000, 9500, 7600),
+        (9300, -5800, 8200, 7100),
+    )
 
     def __init__(self, cfg: dict, origin: tuple[float, float]):
         self.cfg = cfg
@@ -53,15 +69,75 @@ class Band:
         o = self.offset(t)
         return (self.origin[0] + self.normal[0] * o, self.origin[1] + self.normal[1] * o)
 
-    def contains(self, p: tuple[float, float], t: float) -> bool:
-        cx, cy = self.center(t)
+    def rate(self, p: tuple[float, float], t: float, background: float) -> float:
+        return self._rate_at(p, t, background, self.center(t))
+
+    def _rate_at(self, p: tuple[float, float], t: float, background: float,
+                 center: tuple[float, float]) -> float:
+        cx, cy = center
         dx, dy = p[0] - cx, p[1] - cy
         along = dx * self.axis[0] + dy * self.axis[1]
         across = dx * self.normal[0] + dy * self.normal[1]
-        return abs(along) <= self.cfg["length_m"] / 2 and abs(across) <= self.cfg["width_m"] / 2
+        regional = self._regional_rate(p, t, background)
+        return self._band_rate(along, across, t, regional)
 
-    def rate(self, p: tuple[float, float], t: float, background: float) -> float:
-        return self.cfg["rate_in_hr"] if self.cfg["rate_in_hr"] > 0 and self.contains(p, t) else background
+    def _regional_rate(self, p: tuple[float, float], t: float, background: float) -> float:
+        light_peak = min(0.34, (self.cfg["rate_in_hr"] - background) * 0.10)
+        if light_peak <= 0:
+            return background
+
+        x, y = p[0] - self.origin[0], p[1] - self.origin[1]
+        coverage = 0.0
+        for dx, dy, rx, ry in self.REGIONAL_SHOWERS:
+            nx, ny = (x - dx) / rx, (y - dy) / ry
+            weight = 1 - nx * nx - ny * ny
+            if weight > 0:
+                coverage += weight * weight
+        if coverage == 0:
+            return background
+        along = x * self.axis[0] + y * self.axis[1]
+        pulse = 0.85 + 0.15 * math.cos(math.tau * (along - self.CELL_SPEED_MPS * t) / 15000)
+        return background + light_peak * min(1.0, coverage) * pulse
+
+    def _band_rate(self, along: float, across: float, t: float, background: float) -> float:
+        length, width = self.cfg["length_m"], self.cfg["width_m"]
+        excess = self.cfg["rate_in_hr"] - background
+        if excess <= 0 or abs(along) >= length / 2 or abs(across) >= 1.4 * width:
+            return background
+
+        phase = math.tau * (along - self.CELL_SPEED_MPS * t) / self.CELL_SPACING_M
+        cell = 0.5 + 0.5 * math.cos(phase)
+        center = width * (0.15 * math.sin(phase - 0.6) + 0.14 * math.sin(math.tau * along / 19000))
+        flank = (0.76 + 0.20 * cell) * width
+        flank *= 1.10 if across >= center else 0.90
+        cross = (across - center) / flank
+        fringe = max(0.0, 1 - cross * cross) ** 3
+        end = min(1.0, (length / 2 - abs(along)) / (0.14 * length))
+        taper = end * end * (3 - 2 * end)
+        return background + excess * taper * fringe * (0.35 + 0.65 * cell * cell)
+
+    @lru_cache(maxsize=1)
+    def field(self, t: float, background: float, net: Network) -> dict:
+        # The north-up image covers both the local showers and the moving band.
+        # Their modeled rates taper to zero before the image edge.
+        hl, hw = self.cfg["length_m"] / 2, self.cfg["width_m"] * 1.4
+        center = self.center(t)
+        cx, cy = center
+        hx = abs(self.axis[0]) * hl + abs(self.normal[0]) * hw
+        hy = abs(self.axis[1]) * hl + abs(self.normal[1]) * hw
+        ox, oy = self.origin
+        west = min(cx - hx, ox + min(dx - rx for dx, _, rx, _ in self.REGIONAL_SHOWERS), net.bounds[0]) - 500
+        east = max(cx + hx, ox + max(dx + rx for dx, _, rx, _ in self.REGIONAL_SHOWERS), net.bounds[2]) + 500
+        south = min(cy - hy, oy + min(dy - ry for _, dy, _, ry in self.REGIONAL_SHOWERS), net.bounds[1]) - 500
+        north = max(cy + hy, oy + max(dy + ry for _, dy, _, ry in self.REGIONAL_SHOWERS), net.bounds[3]) + 500
+        cols = min(240, math.ceil((east - west) / 200))
+        rows = min(240, math.ceil((north - south) / 200))
+        corners = [net.to_ll(p) for p in ((west, north), (east, north), (east, south), (west, south))]
+        xs = [west + (col + 0.5) * (east - west) / cols for col in range(cols)]
+        ys = [north - (row + 0.5) * (north - south) / rows for row in range(rows)]
+        rates = [round(self._rate_at((x, y), t, background, center), 3) for y in ys for x in xs]
+        return {"corners": corners, "width": cols, "height": rows,
+                "rates_in_hr": rates, "max_rate_in_hr": max(rates)}
 
     def polygon(self, t: float) -> list[list[float]]:
         cx, cy = self.center(t)
@@ -121,8 +197,10 @@ class Vehicle:
 
 # --------------------------------------------------------------------- worlds
 class World:
-    def __init__(self, policy: str, net: Network, scenario: dict, env: Env, params: dict, band: Band):
+    def __init__(self, policy: str, net: Network, scenario: dict, env: Env, params: dict,
+                 band: Band | None, forecast: NWSForecast | None = None):
         self.policy, self.net, self.env, self.params, self.band = policy, net, env, params, band
+        self.forecast = forecast
         self.background = scenario.get("background_rate_in_hr", 0.0)
         init = scenario.get("initial_depth_in", 0.0)
         self.depth = {sid: float(init) for sid in net.segments}
@@ -143,8 +221,11 @@ class World:
         self.fixed_order = {v.id: routing.build_fixed_order(self, v) for v in self.vehicles}
         self.fixed_ptr: dict[str, int] = {}
 
-    # forecast uses the scenario's declared band motion (known-scenario planning)
     def forecast_in(self, sid: str, t: float, horizon: float) -> float:
+        if self.forecast is not None:
+            return self.forecast.amount_in(sid, t, horizon)
+        # Synthetic scenarios look ahead using their declared band motion.
+        assert self.band is not None
         p = self.net.segments[sid].mid
         samples = [self.band.rate(p, t + horizon * k / 4, self.background) for k in range(5)]
         return sum(samples) / len(samples) * horizon / 3600
@@ -193,10 +274,10 @@ class World:
                                      "reason": "Accepted closure affects route; replanning at next node"})
 
     # -------------------------------------------------------------- stepping
-    def step(self, dt: float, t: float, rates: dict[str, float]):
-        for sid, r in rates.items():
-            if r:
-                self.depth[sid] += r * dt / 3600
+    def step(self, dt: float, t: float, snowfall_in: dict[str, float]):
+        for sid, inches in snowfall_in.items():
+            if inches:
+                self.depth[sid] += inches
         for v in self.vehicles:
             self._advance(v, dt, t)
         thr = self.params["threshold_in"]
@@ -338,15 +419,23 @@ class Engine:
         self.new_run(next(iter(self.scenarios)) if "moving_band" not in self.scenarios else "moving_band")
 
     # ----------------------------------------------------------- run control
-    def new_run(self, scenario_id: str, band_overrides: dict | None = None, seed: int | None = None) -> str:
+    def new_run(self, scenario_id: str, band_overrides: dict | None = None, seed: int | None = None,
+                *, forecast: NWSForecast | None = None) -> str:
         if scenario_id not in self.scenarios:
             raise KeyError(scenario_id)
         sc = copy.deepcopy(self.scenarios[scenario_id])
-        if band_overrides:
-            for k, v in band_overrides.items():
+        if sc["band"] is None:
+            if forecast is None or band_overrides is not None:
+                raise ValueError("NWS Forecast requires a weather snapshot and no snowband controls.")
+            sc["weather_snapshot_id"] = forecast.version
+        else:
+            if forecast is not None:
+                raise ValueError("NWS weather snapshots belong to the NWS Forecast scenario.")
+            for k, v in (band_overrides or {}).items():
                 if v is not None and k in sc["band"]:
                     sc["band"][k] = v
-        _validate_band(sc["band"])
+            _validate_band(sc["band"])
+            sc["storm_model"] = Band.MODEL
         params = {**DEFAULT_PARAMS, **sc.get("params", {})}
         with self.lock:
             self.scenario = sc
@@ -354,9 +443,11 @@ class Engine:
             self.run_id = uuid.uuid4().hex[:10]
             self.version = hashlib.sha256(json.dumps(
                 {"scenario": sc, "params": params, "net": self.net.file_hash, "vehicles": VEHICLE_TYPES}, sort_keys=True).encode()).hexdigest()[:12]
-            self.band = Band(sc["band"], self.net.center)
+            self.band = Band(sc["band"], self.net.center) if sc["band"] is not None else None
+            self.forecast = forecast
             self.env = Env()
-            self.worlds = {p: World(p, self.net, sc, self.env, params, self.band) for p in ("fixed", "adaptive")}
+            self.worlds = {p: World(p, self.net, sc, self.env, params, self.band, forecast)
+                           for p in ("fixed", "adaptive")}
             self.t = 0.0
             self.tick = 0
             self.series = {"t": [], "fixed": {"crit": [], "avg": []}, "adaptive": {"crit": [], "avg": []}}
@@ -388,10 +479,16 @@ class Engine:
                     self.playing = False
                     break
                 self._apply_pending()
-                rates = {sid: self.band.rate(seg.mid, self.t, self.worlds["fixed"].background)
-                         for sid, seg in self.net.segments.items()}
+                if self.forecast is not None:
+                    snowfall = {sid: self.forecast.amount_in(sid, self.t, SUBSTEP_S)
+                                for sid in self.net.segments}
+                else:
+                    assert self.band is not None
+                    background = self.worlds["fixed"].background
+                    snowfall = {sid: self.band.rate(seg.mid, self.t, background) * SUBSTEP_S / 3600
+                                for sid, seg in self.net.segments.items()}
                 for w in self.worlds.values():
-                    w.step(SUBSTEP_S, self.t, rates)
+                    w.step(SUBSTEP_S, self.t, snowfall)
                 self.t += SUBSTEP_S
                 self.tick += 1
                 if self.t % SAMPLE_EVERY_S < 1e-6:
@@ -484,7 +581,7 @@ class Engine:
     # --------------------------------------------------------------- snapshot
     def snapshot(self) -> dict:
         with self.lock:
-            return {
+            snapshot = {
                 "schema_version": SCHEMA_VERSION,
                 "run_id": self.run_id,
                 "scenario_version": self.version,
@@ -499,16 +596,22 @@ class Engine:
                     "band": self.scenario["band"], "params": self.params,
                     "initial_depth_in": self.scenario.get("initial_depth_in", 0.0),
                     "fleet": self.scenario["fleet"],
-                    "provenance": "Synthetic storm scenario (not a historical replay)",
+                    "provenance": ("NWS forecast snapshot; modeled road accumulation"
+                                   if self.forecast is not None else "Synthetic storm scenario (not a historical replay)"),
                 },
-                "band": {"polygon": [self.net.to_ll(p) for p in self.band.polygon(self.t)],
-                         "rate_in_hr": self.scenario["band"]["rate_in_hr"]},
+                "band": ({"polygon": [self.net.to_ll(p) for p in self.band.polygon(self.t)],
+                          "rate_in_hr": self.scenario["band"]["rate_in_hr"],
+                          "field": self.band.field(self.t, self.worlds["fixed"].background, self.net)}
+                         if self.band is not None else None),
                 "policies": {p: w.public(self.t) for p, w in self.worlds.items()},
                 "env": self.env.public(self.t),
                 "series": self.series,
                 "alerts": list(self.alerts)[:10],
                 "observations": [o for o in self.observations.values() if o.get("run_id") == self.run_id][-10:],
             }
+            if self.forecast is not None:
+                snapshot["weather"] = self.forecast.public(self.t)
+            return snapshot
 
 
 def derive_effect(result: dict, params: dict) -> dict:

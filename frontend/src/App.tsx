@@ -1,15 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import MapPane, { DEPTH_STOPS } from "./MapPane";
+import MapPane, { DEPTH_STOPS, SNOWFALL_STOPS } from "./MapPane";
+import type { SnowfallAreas, SnowfallField } from "./MapPane";
 
 const FIXED = "#f59e0b";
 const ADAPT = "#22d3ee";
+const FORECAST_SCENARIO = "nws_forecast";
+const COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+const forecastTime = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+});
+
+type ForecastWeather = {
+  source: "nws";
+  issued_at: string;
+  valid_at: string;
+  areas: SnowfallAreas;
+  max_rate_in_hr: number;
+};
 
 async function api(path: string, body?: any) {
   const r = await fetch(path, body === undefined ? undefined : {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.detail || r.statusText);
+  if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : r.statusText || `Request failed (${r.status})`);
   return j;
 }
 
@@ -27,6 +41,7 @@ export default function App() {
   const maps = useRef<Record<string, any>>({});
   const [cam, setCam] = useState<string | null>(null);
   const [hist, setHist] = useState<any>(null);  // stored Tiger Data checkpoint shown instead of live state
+  const [showSnowfall, setShowSnowfall] = useState(true);
 
   useEffect(() => {
     api("/api/network").then(setNetwork).catch((e) => setErr(String(e)));
@@ -48,22 +63,30 @@ export default function App() {
   if (!network || !state) return <div className="loading">{err || "Loading SnowTwin…"}</div>;
 
   const view = hist && hist.run_id === state.run_id ? hist : null;
-  const P = (view || state).policies;
-  const viewBand = (view || state).band;
-  const viewEnv = (view || state).env;
+  const snapshot = view || state;
+  const P = snapshot.policies;
+  const weather: ForecastWeather | null = snapshot.weather?.source === "nws" ? snapshot.weather : null;
+  const isForecast = snapshot.scenario.id === FORECAST_SCENARIO;
+  const field: SnowfallField | null = weather ? null : snapshot.band?.field ?? null;
+  const snowfall = showSnowfall ? (weather?.areas ?? (field ? null : legacySnowfall(snapshot.band))) : null;
+  const snowfallField = showSnowfall && field && field.max_rate_in_hr > 0 ? field : null;
+  const rate = weather?.max_rate_in_hr ?? field?.max_rate_in_hr ?? snapshot.band?.rate_in_hr;
   const camState = cameraStates(state, frames);
   return (
     <div className="app">
       <Header state={state} err={err} />
       <div className="body">
-        <div className="maps">
+        <div className={isForecast ? "maps with-forecast" : "maps"}>
+          {isForecast && <ForecastStatus weather={weather} shown={showSnowfall} />}
           <MapPane title="FIXED-ORDER LOOP (comparison)" accent={FIXED} network={network} world={P.fixed}
-                   band={viewBand} env={viewEnv} syncKey="fixed" maps={maps}
+                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="fixed" maps={maps}
                    frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
-                   band={viewBand} env={viewEnv} syncKey="adaptive" maps={maps}
+                   snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="adaptive" maps={maps}
                    frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
-          <Legend />
+          <Legend rate={rate} forecast={isForecast}
+                  headingDeg={snowfallField ? snapshot.scenario.band?.heading_deg : undefined}
+                  shown={showSnowfall} onToggle={setShowSnowfall} />
           {view && (
             <div className="histbanner">
               🗄 Viewing stored checkpoint {fmtClock(view.sim_time_s)} from Tiger Data (read-only) · run {view.run_id}
@@ -103,7 +126,9 @@ function Header({ state, err }: any) {
         <span className="muted">{state.scenario.label} · {state.playback_status}</span>
       </div>
       <div className="badges">
-        <span className="badge warn" title={state.scenario.provenance}>Synthetic storm</span>
+        <span className="badge warn" title={state.scenario.provenance}>
+          {state.scenario.id === FORECAST_SCENARIO ? "NWS forecast" : "Synthetic storm"}
+        </span>
         {badge("Gemini", I.gemini.verified, I.gemini.verified ? `verified ${I.gemini.last_model}` : I.gemini.configured ? (I.gemini.last_error ? `error ${I.gemini.last_error}` : "configured, not yet verified") : "no key")}
         {badge("Tiger Data", I.tiger.available, I.tiger.available ? `${I.tiger.rows} rows` : I.tiger.configured ? (I.tiger.last_error || "connecting") : "off")}
         {badge("Voice", I.voice.verified, I.voice.verified ? "ElevenLabs verified" : I.voice.configured ? (I.voice.last_error ? `error ${I.voice.last_error}` : "ElevenLabs configured") : "browser TTS fallback")}
@@ -113,39 +138,93 @@ function Header({ state, err }: any) {
   );
 }
 
-function Legend() {
+function legacySnowfall(band: any): SnowfallAreas | null {
+  if (!(band?.rate_in_hr > 0) || !(band.polygon?.length >= 3)) return null;
+  return {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature", properties: { rate_in_hr: band.rate_in_hr, outline: true },
+      geometry: { type: "Polygon", coordinates: [[...band.polygon, band.polygon[0]]] },
+    }],
+  };
+}
+
+function forecastTimestamp(iso: string) {
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? <time dateTime={iso}>{forecastTime.format(ms)}</time> : "Unavailable";
+}
+
+function ForecastStatus({ weather, shown }: { weather: ForecastWeather | null; shown: boolean }) {
+  const status = weather ? weather.max_rate_in_hr === 0
+    ? "No snowfall forecast (0 in/h)" : "Snowfall forecast loaded"
+    : "Forecast data unavailable";
   return (
-    <div className="legend">
-      <span>Estimated depth:</span>
-      {DEPTH_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{v}″</span>)}
-      <span className="sw"><i className="thick" /> critical corridor</span>
-      <span className="sw"><i style={{ background: "#93c5fd", opacity: 0.5 }} /> snowband</span>
-      <span className="sw"><i className="closed" /> closed</span>
-      <span className="sw"><i className="vdot heavy" /> heavy plow</span>
-      <span className="sw"><i className="vdot compact" /> compact blower</span>
+    <div className="forecast-strip">
+      <b>NWS forecast</b>
+      <strong role="status">{status}</strong>
+      {weather && <>
+        <span>Valid {forecastTimestamp(weather.valid_at)} · Issued {forecastTimestamp(weather.issued_at)}</span>
+        <span>{shown ? `Dashed lines show ${weather.areas.features.length} forecast grids` : "Weather layer hidden"}</span>
+      </>}
+    </div>
+  );
+}
+
+function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
+  rate?: number; forecast: boolean; headingDeg?: number;
+  shown: boolean; onToggle: (shown: boolean) => void;
+}) {
+  const rateLabel = Number.isFinite(rate) ? rate === 0
+    ? "No simulated snowfall (0 in/h)"
+    : `Max ${rate < 0.01 ? "<0.01" : Number(rate.toFixed(2))} in/h`
+    : "Snowfall rate unavailable";
+  return (
+    <div className="legend" role="group" aria-label="Map legend">
+      <div className="legend-row">
+        <b>Estimated road depth (in)</b>
+        {DEPTH_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{v}</span>)}
+        <span className="sw"><i className="thick" /> critical corridor</span>
+        <span className="sw"><i className="closed" /> closed</span>
+        <span className="sw"><i className="vdot heavy" /> heavy plow</span>
+        <span className="sw"><i className="vdot compact" /> compact blower</span>
+      </div>
+      <div className="legend-row snowfall-legend">
+        <label className="sw"><input type="checkbox" checked={shown} onChange={(e) => onToggle(e.target.checked)} /> Show snowfall</label>
+        <b>Snowfall rate (in/h)</b>
+        {SNOWFALL_STOPS.map(([v, color, opacity], i) => (
+          <span key={v} className="sw">
+            <i className="snowfall-swatch" style={{ background: color, opacity }} />
+            {v}{i === SNOWFALL_STOPS.length - 1 ? "+" : ""}
+          </span>
+        ))}
+        {(!forecast || (rate ?? 0) > 0) && <span className="snowfall-rate">{rateLabel}</span>}
+        {headingDeg !== undefined && <span>Synthetic snow · Band flow {COMPASS_POINTS[Math.round(headingDeg / 22.5) % 16]} ({Math.round(headingDeg)}°)</span>}
+      </div>
     </div>
   );
 }
 
 function Controls({ state, scenarios }: any) {
-  const [sid, setSid] = useState(state.scenario.id);
-  const [band, setBand] = useState<any>(state.scenario.band);
-  const [busy, setBusy] = useState(false);
-  const runRef = useRef(state.run_id);
-  useEffect(() => {
-    if (runRef.current !== state.run_id) { runRef.current = state.run_id; setSid(state.scenario.id); setBand(state.scenario.band); }
-  }, [state.run_id]);
+  const [draft, setDraft] = useState<{ runId: string; band: any } | null>(null);
+  const [loadingScenario, setLoadingScenario] = useState<string | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const sid = state.scenario.id;
+  const band = draft?.runId === state.run_id ? draft.band : state.scenario.band;
+  const busy = loadingScenario !== null;
 
   const restart = async (scenarioId: string, b: any) => {
-    setBusy(true);
-    try { await api("/api/scenario", { scenario_id: scenarioId, band: b, autoplay: true }); } finally { setBusy(false); }
+    setLoadingScenario(scenarioId);
+    setRestartError(null);
+    try { await api("/api/scenario", { scenario_id: scenarioId, band: b, autoplay: true }); }
+    catch (e) { setRestartError(e instanceof Error ? e.message : "Unable to start this scenario"); }
+    finally { setLoadingScenario(null); }
   };
   const ctl = (action: string, speed?: number) => api("/api/control", { action, speed_multiplier: speed });
   const slider = (key: string, label: string, min: number, max: number, step: number, unit: string) => (
     <label className="slider">
       <span>{label}</span>
       <input type="range" min={min} max={max} step={step} value={band[key]}
-             onChange={(e) => setBand({ ...band, [key]: Number(e.target.value) })} />
+             disabled={busy} onChange={(e) => setDraft({ runId: state.run_id, band: { ...band, [key]: Number(e.target.value) } })} />
       <b>{band[key]}{unit}</b>
     </label>
   );
@@ -154,31 +233,31 @@ function Controls({ state, scenarios }: any) {
       <h3>Scenario & playback</h3>
       <div className="row">
         {state.playback_status === "playing"
-          ? <button onClick={() => ctl("pause")}>⏸ Pause</button>
-          : <button className="primary" onClick={() => ctl("play")}>▶ Play</button>}
+          ? <button disabled={busy} onClick={() => ctl("pause")}>⏸ Pause</button>
+          : <button className="primary" disabled={busy} onClick={() => ctl("play")}>▶ Play</button>}
         {[1, 2, 4, 8].map((s) => (
-          <button key={s} className={state.speed === s ? "sel" : ""} onClick={() => ctl(state.playback_status === "playing" ? "play" : "pause", s)}>{s}×</button>
+          <button key={s} disabled={busy} className={state.speed === s ? "sel" : ""} onClick={() => ctl(state.playback_status === "playing" ? "play" : "pause", s)}>{s}×</button>
         ))}
         <button onClick={() => restart(state.scenario.id, null)} disabled={busy}>↺ Reset</button>
       </div>
-      <select value={sid} onChange={(e) => {
-        setSid(e.target.value);
-        const sc = scenarios.find((s: any) => s.id === e.target.value);
-        if (sc) setBand(sc.band);
-        restart(e.target.value, null);
-      }}>
+      <select aria-label="Scenario" value={loadingScenario ?? sid} disabled={busy} onChange={(e) => restart(e.target.value, null)}>
+        {!scenarios.some((s: any) => s.id === sid) && <option value={sid}>{state.scenario.label}</option>}
         {scenarios.map((s: any) => <option key={s.id} value={s.id}>{s.label}</option>)}
       </select>
+      {busy && <p className="muted small scenario-message" role="status">{loadingScenario === FORECAST_SCENARIO ? "Loading NWS forecast…" : "Starting scenario…"}</p>}
+      {restartError && <p className="bad small scenario-message" role="alert">{restartError} <span className="muted">Still showing {state.scenario.label}.</span></p>}
       <p className="muted small">{state.scenario.description}</p>
-      <details>
+      {sid === FORECAST_SCENARIO && <p className="muted small">Road snow starts at an assumed {state.scenario.initial_depth_in ?? 0} in. The simulation adds forecast snowfall from that point.</p>}
+      {band && sid !== FORECAST_SCENARIO && <details>
         <summary>Steer the snowband (resets both policies together)</summary>
-        {slider("rate_in_hr", "Rate", 0, 6, 0.5, " in/hr")}
-        {slider("heading_deg", "Band axis", 0, 180, 5, "°")}
+        <p className="muted small">Patches of light snow can fall outside the main band. Wobble shifts the band sideways.</p>
+        {slider("rate_in_hr", "Peak rate", 0, 6, 0.5, " in/hr")}
+        {slider("heading_deg", "Flow toward", 0, 355, 5, "°")}
         {slider("width_m", "Width", 400, 5000, 100, " m")}
         {slider("offset_m", "Start offset", -4000, 4000, 100, " m")}
         {slider("wobble_amp_m", "Wobble", 0, 4000, 100, " m")}
         <button className="primary" disabled={busy} onClick={() => restart(sid, band)}>Apply & restart both</button>
-      </details>
+      </details>}
     </section>
   );
 }
@@ -271,6 +350,7 @@ function cameraStates(state: any, frames: any[]) {
     const x = an[f.frame_id];
     if (!x || x.status === "processing") { out[f.frame_id] = "processing"; continue; }
     if (x.status !== "done" || !x.result) { out[f.frame_id] = "failed"; continue; }
+    if (x.reference_only) { out[f.frame_id] = "reference"; continue; }
     const d = state.camera?.decisions?.[`${f.frame_id}@${x.version}`];
     const kind = x.proposed_effect?.kind;
     out[f.frame_id] = d ? (d.decision === "approve" ? "approved" : "rejected") : kind && kind !== "none" ? "pending" : "clear";
@@ -290,6 +370,7 @@ function Decision({ state, analysis, frame, network }: any) {
     try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version, decision }); }
     catch (e: any) { setMsg(e.message); }
   };
+  if (analysis.reference_only) return <div className="small muted">Reference only for this forecast time.</div>;
   if (!analysis.proposed_effect || analysis.proposed_effect.kind === "none") return null;
   return (
     <div className="decision">
@@ -328,7 +409,7 @@ function AnalysisView({ analysis }: any) {
 
 function Proposals({ state, frames, network, onOpen }: any) {
   const items = (state.camera?.analyses || [])
-    .filter((a: any) => a.status === "done" && a.proposed_effect && a.proposed_effect.kind !== "none")
+    .filter((a: any) => a.status === "done" && !a.reference_only && a.proposed_effect && a.proposed_effect.kind !== "none")
     .map((a: any) => ({ a, f: frames.find((f: any) => f.frame_id === a.frame_id) }))
     .filter((x: any) => x.f);
   if (!items.length) return null;
@@ -392,7 +473,7 @@ function CameraViewer({ state, frame, network, onClose }: any) {
       )}
       <AnalysisView analysis={analysis} />
       {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
-      {analysis?.status === "done" && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
+      {analysis?.status === "done" && !analysis.reference_only && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
       <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}>↻ Re-analyze</button></div>
     </div>
   );

@@ -94,12 +94,15 @@ class Telemetry:
         e = self.engine
         if kind == "run":
             self._last_log_t = {}
-            self._put(("run", e.run_id, e.scenario["id"], e.version, {"scenario": e.scenario, "params": e.params}))
+            inputs = {"scenario": e.scenario, "params": e.params}
+            if e.forecast is not None:
+                inputs["weather"] = e.forecast.provenance()
+            self._put(("run", e.run_id, e.scenario["id"], e.version, inputs))
         elif kind == "checkpoint":
             snap = e.snapshot()
             rows = []
             closed = {c["segment_id"] for c in snap["env"]["closures"]}
-            ts = sim_ts(e.t)
+            ts = e.forecast.start_at + timedelta(seconds=e.t) if e.forecast is not None else sim_ts(e.t)
             for policy, w in snap["policies"].items():
                 for sid, (depth, last) in w["segments"].items():
                     rows.append((ts, e.t, e.run_id, policy, sid, depth, sid in closed, last))

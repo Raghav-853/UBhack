@@ -9,6 +9,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -24,7 +25,8 @@ load_dotenv(ROOT / ".env.local", override=False, interpolate=False)
 load_dotenv(ROOT / ".env", override=False, interpolate=False)
 
 from .cameras import LiveCameras  # noqa: E402
-from .simulation import SUBSTEP_S, Engine, derive_effect  # noqa: E402
+from .nws import NWS_SCENARIO_ID, ForecastUnavailable, fetch_forecast  # noqa: E402
+from .simulation import DEFAULT_PARAMS, SUBSTEP_S, Engine, derive_effect  # noqa: E402
 from .telemetry import Telemetry  # noqa: E402
 from .vision import MEDIA, VIDEO, Vision, save_upload  # noqa: E402
 from .voice import Voice  # noqa: E402
@@ -44,11 +46,12 @@ _snapshot_cache: dict = {"data": None}
 def _loop():
     while True:
         start = time.time()
-        if engine.playing:
-            substeps = max(1, round(BASE_SIM_PER_WALL_S * WALL_INTERVAL_S * engine.speed / SUBSTEP_S))
-            engine.advance(substeps)
-        _announce_camera_proposals()
-        _snapshot_cache["data"] = engine.snapshot()
+        with engine.lock:
+            if engine.playing:
+                substeps = max(1, round(BASE_SIM_PER_WALL_S * WALL_INTERVAL_S * engine.speed / SUBSTEP_S))
+                engine.advance(substeps)
+            _announce_camera_proposals()
+            _snapshot_cache["data"] = engine.snapshot()
         time.sleep(max(0.05, WALL_INTERVAL_S - (time.time() - start)))
 
 
@@ -57,6 +60,23 @@ def _loop():
 # The sentence is assembled only from the validated classification fields; no numbers are invented.
 _announced: set[str] = set()
 _SURFACE = {"snow_covered": "snow-covered", "wet": "wet", "dry": "dry"}
+FORECAST_CAMERA_MAX_AGE = timedelta(minutes=30)
+
+
+def _camera_reference_only(observed_at: str | None) -> bool:
+    forecast = engine.forecast
+    if forecast is None:
+        return False
+    if not isinstance(observed_at, str):
+        return True
+    try:
+        capture_time = datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+    except ValueError:
+        return True
+    if capture_time.tzinfo is None:
+        return True
+    age = forecast.start_at + timedelta(seconds=engine.t) - capture_time
+    return not timedelta(0) <= age <= FORECAST_CAMERA_MAX_AGE
 
 
 def _spoken_place(frame: dict) -> str:
@@ -75,7 +95,6 @@ def _announce_camera_proposals():
         key = f"{engine.run_id}:{a['frame_id']}@{a.get('version')}"
         if key in _announced or a["frame_id"] not in vision.frames:
             continue
-        _announced.add(key)
         frame = vision.frames[a["frame_id"]]
         r = a["result"]
         seg = engine.net.segments.get(frame["segment_ids"][0])
@@ -88,9 +107,13 @@ def _announce_camera_proposals():
             parts.append("a travel lane appears blocked")
         action = "Segment closure" if eff["kind"] == "closure" else "Speed reduction"
         where = (seg.name or "this segment") if seg else "this segment"
-        text = (f"Camera report, {_spoken_place(frame)}, archive footage: {', '.join(parts)}. "
+        source = ", archive footage" if "archive" in frame.get("source", "").lower() else ""
+        text = (f"Camera report, {_spoken_place(frame)}{source}: {', '.join(parts)}. "
                 f"{action} proposed on {where}. Awaiting dispatcher approval.")
         with engine.lock:
+            if not key.startswith(f"{engine.run_id}:") or _camera_reference_only(a.get("observed_at")):
+                continue
+            _announced.add(key)
             engine.add_alert("camera", text, a["frame_id"])
 
 
@@ -211,8 +234,11 @@ def scenarios():
 
 @app.get("/api/state")
 def state():
-    snap = _snapshot_cache["data"] or engine.snapshot()
-    camera = {"analyses": list(analyses.values()), "decisions": dict(engine.decisions)}
+    with engine.lock:
+        snap = _snapshot_cache["data"] or engine.snapshot()
+        camera = {"analyses": [{**a, "reference_only": _camera_reference_only(a.get("observed_at"))}
+                               for a in list(analyses.values())],
+                  "decisions": dict(engine.decisions)}
     return JSONResponse({**snap, "integrations": integrations(), "camera": camera})
 
 
@@ -237,6 +263,8 @@ def _decide_locked(body: DecideIn):
         raise HTTPException(409, "No current analysis for this camera")
     if vision.frames.get(body.frame_id, {}).get("version", 0) != body.version:
         raise HTTPException(409, "Camera media changed since this analysis; wait for re-analysis")
+    if _camera_reference_only(a.get("observed_at")):
+        raise HTTPException(409, "Camera footage is outside the 30-minute observation window for this forecast.")
     eff = a.get("proposed_effect") or {"kind": "none"}
     if eff["kind"] == "none":
         raise HTTPException(409, "Nothing to approve for this camera")
@@ -273,30 +301,47 @@ def rerun_analysis(frame_id: str):
 
 @app.post("/api/scenario")
 def new_scenario(body: ScenarioIn):
+    forecast = None
+    previous_run_id = engine.run_id
+    if body.scenario_id == NWS_SCENARIO_ID:
+        if body.band is not None:
+            raise HTTPException(422, "Snowband controls apply only to synthetic storms.")
+        scenario = engine.scenarios[NWS_SCENARIO_ID]
+        horizon = scenario.get("params", {}).get("horizon_s", DEFAULT_PARAMS["horizon_s"])
+        try:
+            forecast = fetch_forecast(engine.net, scenario["duration_s"], horizon)
+        except ForecastUnavailable as e:
+            raise HTTPException(503, str(e)) from e
+
     try:
-        run_id = engine.new_run(body.scenario_id, body.band.model_dump() if body.band else None, body.seed)
+        with engine.lock:
+            if forecast is not None and previous_run_id != engine.run_id:
+                raise HTTPException(409, "The active scenario changed while the NWS forecast was loading. Retry to switch.")
+            run_id = engine.new_run(body.scenario_id, body.band.model_dump() if body.band else None,
+                                    body.seed, forecast=forecast)
+            engine.playing = body.autoplay
+            _snapshot_cache["data"] = engine.snapshot()
+            return {"run_id": run_id, "scenario_version": engine.version}
     except KeyError:
         raise HTTPException(404, f"Unknown scenario {body.scenario_id}")
     except ValueError as e:
         raise HTTPException(422, str(e))
-    engine.playing = body.autoplay
-    _snapshot_cache["data"] = engine.snapshot()
-    return {"run_id": run_id, "scenario_version": engine.version}
 
 
 @app.post("/api/control")
 def control(body: ControlIn):
-    if body.speed_multiplier is not None:
-        engine.speed = body.speed_multiplier
-    if body.action == "play":
-        engine.playing = engine.t < engine.duration
-    elif body.action == "pause":
-        engine.playing = False
-    elif body.action == "step":
-        engine.playing = False
-        engine.advance(6)
-    _snapshot_cache["data"] = engine.snapshot()
-    return {"playback_status": "playing" if engine.playing else "paused", "speed": engine.speed}
+    with engine.lock:
+        if body.speed_multiplier is not None:
+            engine.speed = body.speed_multiplier
+        if body.action == "play":
+            engine.playing = engine.t < engine.duration
+        elif body.action == "pause":
+            engine.playing = False
+        elif body.action == "step":
+            engine.playing = False
+            engine.advance(6)
+        _snapshot_cache["data"] = engine.snapshot()
+        return {"playback_status": "playing" if engine.playing else "paused", "speed": engine.speed}
 
 
 WEATHER_FILE = ROOT / "data" / "weather" / "dec2022_context.json"
@@ -428,19 +473,22 @@ def get_observation(observation_id: str):
 
 @app.post("/api/observations/apply")
 def apply(body: ApplyIn):
-    if body.run_id != engine.run_id:
-        raise HTTPException(409, "Run is no longer active")
-    obs = engine.observations.get(body.observation_id)
-    if not obs or obs.get("run_id") != body.run_id:
-        raise HTTPException(404, "Unknown observation for this run")
-    if obs["status"] != "done" or not obs.get("result"):
-        raise HTTPException(409, f"Observation not applicable (status {obs['status']})")
-    if body.segment_id not in obs.get("segment_ids", []):
-        raise HTTPException(422, "Segment is not mapped to this camera")
-    if engine.t >= engine.duration:
-        raise HTTPException(409, "Run finished; reset the scenario to apply new observations")
-    tick = engine.schedule_apply(obs, body.segment_id)
-    return {"apply_tick": tick, "effect": obs.get("proposed_effect") or frame_effect(obs["frame_id"], obs["result"])}
+    with engine.lock:
+        if body.run_id != engine.run_id:
+            raise HTTPException(409, "Run is no longer active")
+        obs = engine.observations.get(body.observation_id)
+        if not obs or obs.get("run_id") != body.run_id:
+            raise HTTPException(404, "Unknown observation for this run")
+        if obs["status"] != "done" or not obs.get("result"):
+            raise HTTPException(409, f"Observation not applicable (status {obs['status']})")
+        if _camera_reference_only(obs.get("observed_at")):
+            raise HTTPException(409, "Camera footage is outside the 30-minute observation window for this forecast.")
+        if body.segment_id not in obs.get("segment_ids", []):
+            raise HTTPException(422, "Segment is not mapped to this camera")
+        if engine.t >= engine.duration:
+            raise HTTPException(409, "Run finished; reset the scenario to apply new observations")
+        tick = engine.schedule_apply(obs, body.segment_id)
+        return {"apply_tick": tick, "effect": obs.get("proposed_effect") or frame_effect(obs["frame_id"], obs["result"])}
 
 
 @app.get("/api/voice/{alert_id}")
