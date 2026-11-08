@@ -1,34 +1,36 @@
 # SnowTwin WNY — Handoff (baselines, experiment variables, snow contours)
 
-**As of:** 2026-11-07 ~19:20 ET · code commit `972c958` · builds on YoungJun's NWS/storm-model work (`e072d77`).
+**As of:** 2026-11-07 ~19:45 ET · code commits `972c958`, `fba6694`, `69038aa` · builds on YoungJun's NWS/storm-model work (`e072d77`).
 **Read with:** [MASTER_EXECUTION_PLAN.md](MASTER_EXECUTION_PLAN.md), [IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md](IMPLEMENTATION_AUDIT_AND_REMAINING_WORK.md), [WEATHER_HANDOFF.md](WEATHER_HANDOFF.md).
 
 ## What changed
 
 | Area | Change | Where |
 |---|---|---|
-| City priority tiers | Tiers now come from the City's published primary/secondary plow lists (via BTPM, Jan 2026). Tier 1 = City primary or hospital access (critical wide segments near ECMC/BNMC), 2 = secondary, 3 = all others. Both policies use these tiers. Corridor result: 63 primary, 9 hospital access, 1 secondary, 45 residential. | `data/city_priority.json` (sources, published rules, limitations), `backend/app/network.py` |
-| Baseline choice | The comparison world is selectable: **`city_priority`** (default; always serve the highest published tier that needs work, then a north-to-south route order), **`service_history`** (longest since last plowed first, i.e. what a service-history tracker shows), **`fixed_loop`** (the original team loop). | `backend/app/routing.py` (`choose_fixed`) |
+| City priority tiers | Tiers come from the **City DPW Winter Snow Plan 2026-27, Primary/Secondary table (pp. 26-33)**; full extracted table in `data/city_ps_table.json`. Tier 1 = City primary or hospital access, 2 = secondary, 3 = all others; both policies use these tiers. Corridor: 83 primary, 2 hospital access, 7 secondary, 26 residential. The earlier press-reported list was wrong for E Delavan, E Utica, Grider (all primary). | `data/city_priority.json` (page-cited rules, limitations, matched entries), `backend/app/network.py` |
+| Baseline choice | The comparison world is selectable: **`city_priority`** (default; serve the highest published tier that needs work, nearest segment within the tier, the way a crew works contiguously), **`service_history`** (longest since last plowed first in 30-min bins, then nearest; what a service-history tracker shows), **`fixed_loop`** (the original team loop). | `backend/app/routing.py` (`choose_fixed`) |
 | Experiment variables | Per-run overrides, validated: fleet size/mix (1–2 heavy, 0–2 compact) and start points, look-ahead (0–7200 s), critical weight (0–10), eligibility floor, threshold, baseline. Reset keeps the current variables. | `apply_overrides` in `simulation.py`; `POST /api/scenario {overrides: {fleet, params, baseline_policy}}` |
 | Start points | Six candidate starts (BNMC, ECMC, UB South, three Main St intersections). Scenario assumptions, not City garages (DPW Broadway Garage is outside the corridor). | `data/depots.json` |
 | Dashboard | "Experiment variables" panel under Scenario & playback; the comparison map title shows the active baseline. | `frontend/src/App.tsx` (`Experiment`) |
 | Snow contours | Dashed contour lines on the synthetic snowfall field: **blue dashed = snow edge (0.25 in/hr)**, **white dashed = heavy core (2 in/hr)**, with a dark halo for readability. Computed server-side (marching squares) and sent in `band.field.contours`. | `simulation.py` (`_contour`, `CONTOUR_LEVELS`), `MapPane.tsx` |
 | Experiments | `scripts/experiments.py`: 25 seeded randomized paired trials per baseline, three ablations, a heavy-start sweep → `Docs/EXPERIMENTS.md`. `scripts/benchmark.py` re-run on the new storm model → `Docs/RESULTS.md`. | |
 
-## Key results (simulated, synthetic storm; see the docs for full tables)
+## Key results (simulated, synthetic storm; 25 seeded random storms/starts; full tables in EXPERIMENTS.md)
 
-- **Adaptive vs City published priority, 25 random storms/starts:** critical-segment exposure median −96.6% (adaptive better in 22/25), distance −8.9% (24/25), snow cleared per crew-hour +23.8% (22/25). Worst trial is unfavorable (+212% critical exposure), and it is reported.
-- **Vs service history:** critical exposure better in 25/25, but efficiency is roughly even (crew-hour productivity −1.4% median, better in 10/25).
-- **Ablation finding (important for the pitch):** turning off the 30-min look-ahead barely changes results, and turning off both look-ahead and critical weight still beats the City-priority baseline (distance −17.6%, productivity +40%). **Most of the gain comes from scoring priority per minute of travel/service, not from the forecast.** Do not pitch the improvement as "thanks to forecasting"; say "need-and-cost-aware dispatch" and present look-ahead as a component whose contribution was measured as small.
+- **Adaptive vs City published priority (strongest baseline):** critical-segment exposure median **−50%** (better in 17/25, 3 ties, worst trial unfavorable), but distance **+9.8%** (better in only 1/25) and snow cleared per crew-hour −2.2%. The honest claim is a **trade-off: about 10% more driving to halve exposure on Main Street / hospital approaches**.
+- **Vs service history:** critical exposure −97% (24/25), distance +4%, productivity −5%.
+- **Ablations:** the gain comes from the **critical-corridor weight**; without it adaptive is worse than the City baseline on critical exposure. The 30-min look-ahead contributes little. Do not pitch the result as "forecasting"; pitch "risk-weighted, need-aware dispatch" and show the trade-off.
+- An earlier version of the baselines ignored travel distance within a tier, which made them artificially weak; fixed in `fba6694` before these numbers.
 
 ## Honest framing (keep)
 
 - The baselines follow the City's **published** priority order and lists; they are not a reconstruction of the City's dispatch software, routes, or garage assignments.
-- `data/city_priority.json` lists limits: name-based matching, segment limits checked only approximately, the City's 2026-27 PDF (P/S table, garages, districts) could not be retrieved (HTTP 403), bus routes not modeled, streets absent from both lists (East Delavan, Grider, East Utica) treated as residential.
+- `data/city_priority.json` lists limits: name-based matching (printed limits of every matched entry span the corridor portion), district routes/turn-by-turn order (pp. 35-49) not modeled, fire houses/police/warming centers not modeled, Humboldt Pkwy and Laurel St absent from the table (residential).
+- The Snow Plan itself says equipment is assigned to pre-determined district routes and **may be reassigned where snowfall is heavier** (p. 9). Frame SnowTwin as decision support for that reassignment, not as replacing the City's routes.
 
 ## Open items
 
-1. **City PDF:** if someone downloads the 2026-27 Snow Plan PDF manually, add the exact P/S segment limits, garage locations and plow districts to `data/city_priority.json` / `data/depots.json`.
+1. **City PDF:** kept locally as `SNOW-PLAN_26-27_FINAL-compressed.pdf` (git-ignored). Not yet used: plow districts (pp. 35-49), fleet inventory (p. 50), fire/police locations. The DPW Snow Hub address was not found in the extracted text.
 2. RESULTS.md and EXPERIMENTS.md are regenerated by the two scripts; rerun both after any model change.
 3. Automated tests are still missing.
 4. NWS runs: the experiment panel works, but camera approvals are limited by YoungJun's capture-time rule (archive clips cannot be applied to forecast runs, by design).
