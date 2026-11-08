@@ -453,7 +453,7 @@ header.command-bar {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #0d2342;
+  background: #0e0e0e;
   overflow: hidden;
 }
 
@@ -552,6 +552,7 @@ header.command-bar {
 .map {
   flex: 1;
   min-height: 260px;
+  background: #0e0e0e;
 }
 
 /* In-Map Fleet HUD Overlay (#123461 + #07397c + #FFFFFF) */
@@ -1944,3 +1945,15 @@ summary {
     transition: none !important;
   }
 }
+
+/* Snow Plan facility markers (hospital / police / fire / critical) */
+.facility { width: 16px; height: 16px; border-radius: 3px; font: 700 10px/16px system-ui, sans-serif; text-align: center; color: #fff;
+  border: 1px solid #0b1220; opacity: 0.95; cursor: help; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.facility.hospital { background: #db2777 !important; }
+.facility.police { background: #2563eb !important; }
+.facility.fire { background: #ea580c !important; }
+.facility.critical { background: #64748b !important; }
+
+aside.side { transition: flex-basis 600ms ease, width 600ms ease, opacity 400ms ease; }
+.results-popup { animation: results-in 500ms ease 450ms both; }
+@keyframes results-in { from { opacity: 0; transform: translate(-50%, -46%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }

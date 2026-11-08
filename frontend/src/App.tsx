@@ -44,6 +44,7 @@ export default function App() {
   const maps = useRef<Record<string, any>>({});
   const [cam, setCam] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(true);
+  const [resultsOpen, setResultsOpen] = useState(true);  // end-of-run results popup (side panel tucked away)
   const [loadingScenario, setLoadingScenario] = useState<string | null>(null);
   const [restartError, setRestartError] = useState<string | null>(null);
 
@@ -65,6 +66,7 @@ export default function App() {
 
   useEffect(() => {
     setShowSummary(true);
+    setResultsOpen(true);
   }, [state?.run_id]);
 
   const selectCamera = (id: string) => setCam(id);
@@ -102,8 +104,11 @@ export default function App() {
   const camState = cameraStates(state, frames);
   const selectedCam = cam;
   const finished = state.playback_status === "finished";
-  const summaryOn = finished && showSummary;
+  // End-of-run summary (exposure-share map + banner) is switched off for now; flip to true to restore.
+  const SUMMARY_ENABLED = false;
+  const summaryOn = SUMMARY_ENABLED && finished && showSummary;
   const selectedFrame = frames.find((f: any) => f.frame_id === selectedCam);
+  const endLayout = finished && resultsOpen;
 
   return (
     <div className="app">
@@ -116,10 +121,10 @@ export default function App() {
         restartError={restartError}
         onRestart={restartScenario}
       />
-      <div className="body">
+      <div className={endLayout ? "body ended" : "body"}>
         <div className="map-stage">
           {isForecast && <ForecastStatus weather={weather} shown={true} />}
-          {finished && (
+          {SUMMARY_ENABLED && finished && (
             <div className="stage-banner summary-banner">
               <div className="stage-banner-left">
                 <span className="banner-pill">RUN COMPLETE</span>
@@ -148,17 +153,18 @@ export default function App() {
               snowfallField={snowfallField}
               env={snapshot.env}
               syncKey="fixed"
+              progress={state.duration_s ? state.sim_time_s / state.duration_s : 0}
               maps={maps}
               summary={summaryOn}
-              inset={null}
+              inset={endLayout ? "right" : null}
               frames={frames}
               selectedCam={selectedCam}
               onCameraClick={selectCamera}
               camState={camState}
             />
             <MapPane
-              tag="SNOWTWIN"
-              title="Adaptive look-ahead routing"
+              tag="SNOWBULL"
+              title="SnowBull routing"
               accent={ADAPT}
               network={network}
               world={P.adaptive}
@@ -166,15 +172,25 @@ export default function App() {
               snowfallField={snowfallField}
               env={snapshot.env}
               syncKey="adaptive"
+              progress={state.duration_s ? state.sim_time_s / state.duration_s : 0}
               maps={maps}
               summary={summaryOn}
-              inset={null}
+              inset={endLayout ? "left" : null}
               frames={frames}
               selectedCam={selectedCam}
               onCameraClick={selectCamera}
               camState={camState}
             />
 
+            {endLayout && (
+              <div className="results-popup" role="dialog" aria-label="Results">
+                <div className="results-popup-head">
+                  <span>RESULTS</span>
+                  <button className="icon-btn" onClick={() => setResultsOpen(false)} title="Close results">×</button>
+                </div>
+                <Metrics state={state} highlight />
+              </div>
+            )}
             {selectedFrame && (
               <CameraViewer
                 key={selectedFrame.frame_id}
@@ -340,18 +356,18 @@ function ForecastStatus({ weather, shown }: { weather: ForecastWeather | null; s
 
 // [key, short label, tooltip, lower/higher is better, format]
 const ROWS: [string, string, string, "low" | "high", (v: any) => string][] = [
+  ["inch_km_per_crew_hour", "Snow cleared per crew-hour", "Snow cleared per active crew-hour (in·km)", "high", (v) => v.toFixed(1)],
+  ["exposure_min", "Unsafe time, all roads (min)", "Minutes all segments spent above the threshold", "low", (v) => v.toFixed(0)],
   ["critical_exposure_min", "Unsafe time, critical roads (min)", "Minutes critical segments spent above the depth threshold", "low", (v) => v.toFixed(0)],
   ["avg_critical_depth_in", "Snow on critical roads (in)", "Average snow depth on critical segments", "low", (v) => v.toFixed(2)],
   ["distance_km", "Distance driven (km)", "Total distance driven", "low", (v) => v.toFixed(1)],
-  ["inch_km_per_crew_hour", "Snow cleared per crew-hour", "Snow cleared per active crew-hour (in·km)", "high", (v) => v.toFixed(1)],
-  ["exposure_min", "Unsafe time, all roads (min)", "Minutes all segments spent above the threshold", "low", (v) => v.toFixed(0)],
   ["deadhead_pct", "Driving without plowing (%)", "Share of travel spent not plowing", "low", (v) => v.toFixed(0)],
   ["services", "Plow passes", "Completed plowing passes", "high", (v) => String(v)],
   ["reaccumulations", "Roads snowed in again", "Segments that filled back in after service", "low", (v) => String(v)],
   ["crew_hours", "Crew-hours", "Active crew-hours", "low", (v) => v.toFixed(1)],
 ];
 
-const KEY_ORDER = ["critical_exposure_min", "exposure_min", "inch_km_per_crew_hour"];
+const KEY_ORDER = ["inch_km_per_crew_hour", "exposure_min", "critical_exposure_min"];
 const KEY_METRICS = new Set(KEY_ORDER);
 
 function Metrics({ state, highlight = false }: any) {
@@ -387,7 +403,8 @@ function Metrics({ state, highlight = false }: any) {
   }, [promoted]);
 
   const thr = state.scenario.params.threshold_in;
-  const fv = f.critical_exposure_min ?? 0, av = a.critical_exposure_min ?? 0;
+  // Hero: snow cleared per crew-hour (higher is better).
+  const fv = f.inch_km_per_crew_hour ?? 0, av = a.inch_km_per_crew_hour ?? 0;
   const hasHero = fv > 0;
   const pct = hasHero ? Math.round(((av - fv) / fv) * 100) : 0;
 
@@ -401,11 +418,11 @@ function Metrics({ state, highlight = false }: any) {
       </div>
 
       {hasHero && (
-        <div className="hero-banner" title="Critical exposure: minutes Main Street and hospital approaches spent above the threshold">
+        <div className="hero-banner" title="Snow cleared per active crew-hour (in·km), SnowBull vs baseline">
           <div className="hero-stat">
-            <span className={pct <= 0 ? "hero-num" : "hero-num worse"}>{pct > 0 ? "+" : ""}{pct}%</span>
+            <span className={pct >= 0 ? "hero-num" : "hero-num worse"}>{pct > 0 ? "+" : ""}{pct}%</span>
             <span className="hero-label">
-              {pct <= 0 ? "reduction" : "increase"} in unsafe time on Main St &amp; hospital approaches
+              {pct >= 0 ? "more" : "less"} snow cleared per crew-hour
             </span>
           </div>
         </div>
@@ -416,7 +433,7 @@ function Metrics({ state, highlight = false }: any) {
           <tr>
             <th>Metric</th>
             <th className="col-baseline">Baseline</th>
-            <th className="col-adaptive">Adaptive</th>
+            <th className="col-adaptive">SnowBull</th>
             <th>Delta</th>
           </tr>
         </thead>

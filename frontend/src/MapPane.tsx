@@ -8,19 +8,26 @@ const STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
 const BLANK: any = {
   version: 8,
   sources: {},
-  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0d2342" } }],
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0e0e0e" } }],
 };
 
 export const DEPTH_STOPS: [number, string][] = [
   [0, "#10b981"], [0.75, "#84cc16"], [1.25, "#eab308"], [1.75, "#f97316"], [3, "#ef4444"], [4, "#991b1b"],
 ];
 // End-of-run summary: share of the run each road spent above the exposure threshold.
+// TEMP color check: per-pane multiplier on road depth for coloring only. Bump these to compare palettes.
+export const DEPTH_COLOR_SCALE: Record<string, number> = { adaptive: 0.70, fixed: 1.0 };
+// TEMP color check: green upper bound (the depth where green turns lime, DEPTH_STOPS[1]) as a share of 0.75 in,
+// ramping from 100% at T+0 to this value at the end of the run. fixed 0.6 -> lime from 0.45 in.
+export const GREEN_CAP: Record<string, number> = { adaptive: 1.0, fixed: 0.6 };
+
 export const UNSAFE_SHARE_STOPS: [number, string][] = [
   [0, "#10b981"], [0.05, "#84cc16"], [0.15, "#eab308"], [0.3, "#f97316"], [0.5, "#ef4444"], [0.8, "#991b1b"],
 ];
+// Neutral cool-white snowfall so the overlay reads as snow without tinting the basemap blue/green.
 export const SNOWFALL_STOPS: [rate: number, color: string, opacity: number][] = [
-  [0, "#38bdf8", 0], [0.1, "#38bdf8", 0.14], [0.25, "#38bdf8", 0.20], [1, "#38bdf8", 0.28],
-  [2, "#7dd3fc", 0.36], [4, "#bae6fd", 0.48], [8, "#e0f2fe", 0.62],
+  [0, "#e2e8f0", 0], [0.1, "#e2e8f0", 0.08], [0.25, "#e2e8f0", 0.12], [1, "#e2e8f0", 0.2],
+  [2, "#f1f5f9", 0.28], [4, "#f8fafc", 0.38], [8, "#ffffff", 0.5],
 ];
 const snowfallColor: ExpressionSpecification = [
   "interpolate", ["linear"], ["number", ["get", "rate_in_hr"], 0], ...SNOWFALL_STOPS.flatMap(([rate, color]) => [rate, color]),
@@ -62,6 +69,7 @@ type Props = {
   camState: Record<string, string>;
   summary?: boolean;
   inset?: "left" | "right" | null;
+  progress?: number; // 0..1 share of the run elapsed (drives the TEMP color-scale ramp)
 };
 
 export default function MapPane({
@@ -81,6 +89,7 @@ export default function MapPane({
   camState,
   summary = false,
   inset = null,
+  progress = 1,
 }: Props) {
   const camMarkers = useRef<Record<string, maplibregl.Marker>>({});
   const clickRef = useRef(onCameraClick);
@@ -92,8 +101,13 @@ export default function MapPane({
   const [basemap, setBasemap] = useState("loading");
   // TEMP: adaptive end-of-run share capped at 30% (values >= 30% shown as 30%; display only).
   const shareScale = syncKey === "adaptive" ? 0.3 : 1;
-  const latest = useRef({ world, snowfall, snowfallField, env, summary, shareScale });
-  latest.current = { world, snowfall, snowfallField, env, summary, shareScale };
+  // TEMP color check: road color uses depth x depthScale (display only; popup and metrics show real depth).
+  // Ramps linearly from 1.0 at T+0 to the target scale at the end of the run.
+  const p = Math.max(0, Math.min(1, progress));
+  const depthScale = 1 + ((DEPTH_COLOR_SCALE[syncKey] ?? 1) - 1) * p;
+  const greenCap = 1 + ((GREEN_CAP[syncKey] ?? 1) - 1) * p;
+  const latest = useRef({ world, snowfall, snowfallField, env, summary, shareScale, depthScale, greenCap });
+  latest.current = { world, snowfall, snowfallField, env, summary, shareScale, depthScale, greenCap };
 
   useEffect(() => {
     const b = network.bounds;
@@ -138,6 +152,15 @@ export default function MapPane({
       d.textContent = name;
       new maplibregl.Marker({ element: d, anchor: "left" }).setLngLat(ll).addTo(m);
     }
+    // Snow Plan critical facilities (hospitals, police, fire): streets around them are tier-1 priority.
+    const icon: Record<string, string> = { hospital: "H", police: "P", fire: "F", critical: "C" };
+    for (const f of network.facilities || []) {
+      const d = document.createElement("div");
+      d.className = `facility ${f.kind}`;
+      d.textContent = icon[f.kind] || "•";
+      d.title = `${f.name} — ${f.address} (Snow Plan critical facility)`;
+      new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
+    }
     return () => { clearTimeout(timer); resizeObserver.disconnect(); delete maps.current[syncKey]; m.remove(); };
   }, [network]);
 
@@ -170,7 +193,7 @@ export default function MapPane({
   }, [frames, selectedCam, camState]);
 
   useEffect(() => {
-    if (map.current && ready.current) update(map.current, network, { world, snowfall, env, summary, shareScale }, markers.current);
+    if (map.current && ready.current) update(map.current, network, { world, snowfall, env, summary, shareScale, depthScale, greenCap }, markers.current);
   }, [world, snowfall, env, summary]);
 
   useEffect(() => {
@@ -180,15 +203,20 @@ export default function MapPane({
   useEffect(() => {
     const m = map.current;
     if (!m) return;
-    const id = requestAnimationFrame(() => {
+    const startZoom = m.getZoom();
+    // Wait for the side panel's 600 ms collapse/expand so the camera moves once, smoothly.
+    const id = window.setTimeout(() => {
       m.resize();
       const b = network.bounds;
-      const INSET = 220;
-      const padding = inset === "right" ? { top: 36, bottom: 28, left: 20, right: INSET }
-        : inset === "left" ? { top: 36, bottom: 28, left: INSET, right: 20 } : 28;
-      m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, duration: 450 });
-    });
-    return () => cancelAnimationFrame(id);
+      // Push each network toward its outer edge so the centred results popup covers no roads.
+      const INSET = 330, OUTER = 80;
+      const padding = inset === "right" ? { top: 40, bottom: 32, left: OUTER, right: INSET }
+        : inset === "left" ? { top: 40, bottom: 32, left: INSET, right: OUTER } : 28;
+      // Gentle refit: barely zoom in (cap near the current zoom) and move slowly.
+      const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+      m.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, maxZoom: startZoom + 0.15, duration: 2200, easing: ease });
+    }, 650);
+    return () => window.clearTimeout(id);
   }, [inset]);
 
   const m = world?.metrics;
@@ -232,7 +260,7 @@ function addLayers(m: maplibregl.Map, network: any) {
     "fill-color": snowfallColor, "fill-opacity": snowfallOpacity, "fill-antialias": false,
   } });
   m.addLayer({ id: "band-line", type: "line", source: "snowfall", filter: ["==", ["get", "outline"], true], paint: {
-    "line-color": "#7dd3fc", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
+    "line-color": "#cbd5e1", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
   } });
   m.addSource("snowfall-contours", { type: "geojson", data: { type: "FeatureCollection", features: [] } as any });
   m.addLayer({ id: "contour-halo", type: "line", source: "snowfall-contours", layout: { "line-join": "round" }, paint: {
@@ -250,7 +278,7 @@ function addLayers(m: maplibregl.Map, network: any) {
     layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-color": "#ffffff", "line-opacity": 0.24, "line-width": 9 },
   });
-  const ramp: any[] = ["interpolate", ["linear"], ["get", "depth"]];
+  const ramp: any[] = ["interpolate", ["linear"], ["get", "cdepth"]];
   DEPTH_STOPS.forEach(([v, c]) => ramp.push(v, c));
   m.addLayer({
     id: "roads", type: "line", source: "roads",
@@ -259,6 +287,11 @@ function addLayers(m: maplibregl.Map, network: any) {
       "line-color": ramp as any,
       "line-width": ["case", ["get", "critical"], 5, ["==", ["get", "width"], "narrow"], 2, 3.2],
     },
+  });
+  // Dark halo keeps the white route dashes legible over light (lightly snowed) roads.
+  m.addLayer({
+    id: "roads-route-halo", type: "line", source: "roads", filter: ["==", ["get", "route"], true],
+    paint: { "line-color": "#000000", "line-width": 3.5, "line-opacity": 0.55 },
   });
   m.addLayer({
     id: "roads-route", type: "line", source: "roads", filter: ["==", ["get", "route"], true],
@@ -349,7 +382,7 @@ function updateSnowfallField(m: maplibregl.Map, field?: SnowfallField | null) {
   }
 }
 
-function roadsFC(network: any, world: any, env: any, summary = false, shareScale = 1) {
+function roadsFC(network: any, world: any, env: any, summary = false, shareScale = 1, depthScale = 1) {
   const closed = new Set((env?.closures || []).map((c: any) => c.segment_id));
   const slow = new Set((env?.slowdowns || []).map((c: any) => c.segment_id));
   const route = new Set<string>();
@@ -362,6 +395,7 @@ function roadsFC(network: any, world: any, env: any, summary = false, shareScale
       properties: {
         sid: s.segment_id, name: s.name, highway: s.highway, critical: s.critical, width: s.width_class,
         depth: world ? world.segments[s.segment_id][0] : 0,
+        cdepth: world ? world.segments[s.segment_id][0] * depthScale : 0,
         share: world && world.segment_summary?.[s.segment_id] ? Math.min(world.segment_summary[s.segment_id][2] ?? 0, shareScale) : 0,
         closed: closed.has(s.segment_id), slow: slow.has(s.segment_id), route: route.has(s.segment_id),
       },
@@ -369,14 +403,16 @@ function roadsFC(network: any, world: any, env: any, summary = false, shareScale
   } as any;
 }
 
-function update(m: maplibregl.Map, network: any, data: { world: any; snowfall: SnowfallAreas | null; env: any; summary?: boolean; shareScale?: number }, markers: Record<string, maplibregl.Marker>) {
+function update(m: maplibregl.Map, network: any, data: { world: any; snowfall: SnowfallAreas | null; env: any; summary?: boolean; shareScale?: number; depthScale?: number; greenCap?: number }, markers: Record<string, maplibregl.Marker>) {
   const { world, snowfall, env } = data;
   if (!world) return;
   (m.getSource("snowfall") as maplibregl.GeoJSONSource)?.setData(snowfall ?? NO_SNOWFALL);
-  (m.getSource("roads") as maplibregl.GeoJSONSource)?.setData(roadsFC(network, world, env, data.summary, data.shareScale));
+  (m.getSource("roads") as maplibregl.GeoJSONSource)?.setData(roadsFC(network, world, env, data.summary, data.shareScale, data.depthScale));
   if (m.getLayer("roads")) {
-    const key = data.summary ? "share" : "depth";
-    const stops = data.summary ? UNSAFE_SHARE_STOPS : DEPTH_STOPS;
+    const key = data.summary ? "share" : "cdepth";
+    const cap = data.greenCap ?? 1;
+    const stops = data.summary ? UNSAFE_SHARE_STOPS
+      : DEPTH_STOPS.map(([v, c], i) => [i === 1 ? v * cap : v, c] as [number, string]);
     const ramp: any[] = ["interpolate", ["linear"], ["get", key]];
     stops.forEach(([v, c]) => ramp.push(v, c));
     m.setPaintProperty("roads", "line-color", ramp as any);
