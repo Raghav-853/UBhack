@@ -49,7 +49,16 @@ def _loop():
         start = time.time()
         with engine.lock:
             if engine.playing:
+                # Demo scenarios can script the playback speed by simulated time (e.g. 8x, 24x, 8x).
+                schedule = engine.scenario.get("playback_schedule")
+                boundary = None
+                if schedule:
+                    phase = next((ph for ph in schedule if engine.t < ph["until_s"]), schedule[-1])
+                    engine.speed = float(phase["speed"])
+                    boundary = phase["until_s"]
                 substeps = max(1, round(BASE_SIM_PER_WALL_S * WALL_INTERVAL_S * engine.speed / SUBSTEP_S))
+                if boundary is not None and boundary > engine.t:
+                    substeps = min(substeps, max(1, int(round((boundary - engine.t) / SUBSTEP_S))))
                 engine.advance(substeps)
             _announce_camera_proposals()
             _snapshot_cache["data"] = engine.snapshot()

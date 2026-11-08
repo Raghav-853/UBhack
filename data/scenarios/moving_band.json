@@ -8,7 +8,7 @@
   "band": {
     "rate_in_hr": 4.0,
     "heading_deg": 75,
-    "width_m": 1800,
+    "width_m": 3000,
     "length_m": 30000,
     "offset_m": -1800,
     "drift_mps": 0.0,
