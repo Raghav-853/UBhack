@@ -183,9 +183,29 @@ class BandIn(BaseModel):
     wobble_period_s: float | None = Field(None, ge=600, le=43200)
 
 
+class VehicleIn(BaseModel):
+    id: str = Field(min_length=1, max_length=8)
+    type: Literal["heavy_plow", "compact_blower"]
+    start: str
+
+
+class ParamsIn(BaseModel):
+    horizon_s: float | None = None
+    corridor_beta: float | None = None
+    min_service_depth_in: float | None = None
+    threshold_in: float | None = None
+
+
+class OverridesIn(BaseModel):
+    fleet: list[VehicleIn] | None = None
+    params: ParamsIn | None = None
+    baseline_policy: Literal["city_priority", "service_history", "fixed_loop"] | None = None
+
+
 class ScenarioIn(BaseModel):
     scenario_id: str
     band: BandIn | None = None
+    overrides: OverridesIn | None = None
     seed: int | None = None
     autoplay: bool = False
 
@@ -318,7 +338,8 @@ def new_scenario(body: ScenarioIn):
             if forecast is not None and previous_run_id != engine.run_id:
                 raise HTTPException(409, "The active scenario changed while the NWS forecast was loading. Retry to switch.")
             run_id = engine.new_run(body.scenario_id, body.band.model_dump() if body.band else None,
-                                    body.seed, forecast=forecast)
+                                    body.seed, forecast=forecast,
+                                    overrides=body.overrides.model_dump() if body.overrides else None)
             engine.playing = body.autoplay
             _snapshot_cache["data"] = engine.snapshot()
             return {"run_id": run_id, "scenario_version": engine.version}

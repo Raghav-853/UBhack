@@ -31,6 +31,7 @@ export type SnowfallField = {
   height: number;
   rates_in_hr: number[];
   max_rate_in_hr: number;
+  contours?: { level: number; label: string; lines: [number, number][][] }[];
 };
 const NO_SNOWFALL: SnowfallAreas = { type: "FeatureCollection", features: [] };
 const FIELD_ID = "snowfall-field";
@@ -165,6 +166,16 @@ function addLayers(m: maplibregl.Map, network: any) {
   m.addLayer({ id: "band-line", type: "line", source: "snowfall", filter: ["==", ["get", "outline"], true], paint: {
     "line-color": "#93c5fd", "line-opacity": snowfallOpacity, "line-dasharray": [2, 2],
   } });
+  m.addSource("snowfall-contours", { type: "geojson", data: { type: "FeatureCollection", features: [] } as any });
+  // Dark halo under the dashes keeps the snowband boundary readable on any basemap.
+  m.addLayer({ id: "contour-halo", type: "line", source: "snowfall-contours", layout: { "line-join": "round" }, paint: {
+    "line-color": "#0b1220", "line-opacity": 0.55, "line-width": ["case", [">=", ["get", "level"], 2], 4.5, 3.5],
+  } });
+  // line-dasharray cannot be data-driven in MapLibre 4, so edge and core are separate layers.
+  m.addLayer({ id: "contour-edge", type: "line", source: "snowfall-contours", filter: ["<", ["get", "level"], 2],
+    layout: { "line-join": "round" }, paint: { "line-color": "#7dd3fc", "line-width": 1.6, "line-dasharray": [4, 3] } });
+  m.addLayer({ id: "contour-core", type: "line", source: "snowfall-contours", filter: [">=", ["get", "level"], 2],
+    layout: { "line-join": "round" }, paint: { "line-color": "#f0f9ff", "line-width": 2.2, "line-dasharray": [2, 1.5] } });
   m.addLayer({ id: "nws-grid-boundaries", type: "line", source: "snowfall", filter: ["has", "grid_id"], paint: {
     "line-color": "#9fb1cb", "line-opacity": 0.7, "line-width": 1.2, "line-dasharray": [3, 2],
   } });
@@ -226,7 +237,17 @@ function snowfallPixels(rates: number[]): Uint8ClampedArray {
   return pixels;
 }
 
+function updateContours(m: maplibregl.Map, field?: SnowfallField | null) {
+  const src = m.getSource("snowfall-contours") as maplibregl.GeoJSONSource | undefined;
+  if (!src) return;
+  const features = (field?.contours || []).flatMap((c) => c.lines.map((line) => ({
+    type: "Feature", properties: { level: c.level, label: c.label }, geometry: { type: "LineString", coordinates: line },
+  })));
+  src.setData({ type: "FeatureCollection", features } as any);
+}
+
 function updateSnowfallField(m: maplibregl.Map, field?: SnowfallField | null) {
+  updateContours(m, field);
   const source = m.getSource<maplibregl.ImageSource>(FIELD_ID);
   if (!field || !(field.max_rate_in_hr > 0) || field.corners.length !== 4 ||
     !Number.isInteger(field.width) || field.width <= 0 || !Number.isInteger(field.height) ||

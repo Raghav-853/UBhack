@@ -1,0 +1,22 @@
+{
+  "source": "City of Buffalo primary/secondary plow street lists as published by Buffalo Toronto Public Media (2026-01-15), provided by the Mayor's office; priority order and emergency-access rule from the City's 2026-27 Winter Snow Plan as reported by WKBW/WNYmedia/WIVB (Oct 2026).",
+  "source_urls": [
+    "https://www.btpm.org/local/2026-01-15/buffalo-find-out-which-streets-are-plowed-with-citys-online-snow-removal-tracker",
+    "https://www.wkbw.com/news/local-news/city-of-buffalo-releases-2026-2027-winter-snow-plan",
+    "https://wnymedia.net/2026/10/22/mayor-ryan-unveils-2026-27-winter-snow-plan-with-2-7-million-for-contracted-removal/"
+  ],
+  "published_rules": [
+    "Plow drivers focus first on primary roads, followed by secondary roads and then residential streets.",
+    "Primary and secondary streets include bus routes and access to emergency facilities (hospitals and other 24/7 critical infrastructure).",
+    "Goal: at least one plow pass on every residential street within 24 hours after a snow event ends."
+  ],
+  "limitations": [
+    "Matched by street name inside the corridor; listed segment limits (e.g. Main: Goodell to Bailey) were checked only approximately.",
+    "The City's 2026-27 PDF street table (P/S with limits), garage assignments and plow districts could not be retrieved (HTTP 403); a later list may differ (e.g. Fillmore limits).",
+    "Bus routes are not modeled; hospital access is approximated by the corridor's critical segments near ECMC/BNMC.",
+    "Streets absent from both lists (e.g. East Delavan Ave, Grider St, East Utica St) are treated as residential priority; they may be maintained by another agency, which was not verified."
+  ],
+  "primary": ["Main Street", "Kensington Avenue", "Fillmore Avenue", "East Ferry Street", "Humboldt Parkway",
+              "Jefferson Avenue", "Michigan Avenue", "Hertel Avenue", "Kenmore Avenue", "Amherst Street", "Delaware Avenue"],
+  "secondary": ["Dewey Avenue", "North Street", "Winspear Avenue", "Jewett Avenue", "Jewett Parkway", "East Amherst Street"]
+}

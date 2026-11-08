@@ -35,7 +35,52 @@ DEFAULT_PARAMS = {
     "closure_duration_s": 2700,
     "visibility_factor": {"reduced": 0.8, "poor": 0.6},
     "slowdown_duration_s": 3600,
+    "baseline_policy": "city_priority",  # comparison world: city_priority | service_history | fixed_loop
 }
+
+# Experiment variables that may be overridden per run, with allowed ranges.
+PARAM_LIMITS = {
+    "horizon_s": (0, 7200),
+    "corridor_beta": (0, 10),
+    "min_service_depth_in": (0.25, 3),
+    "threshold_in": (0.5, 6),
+}
+BASELINE_POLICIES = ("city_priority", "service_history", "fixed_loop")
+
+
+def apply_overrides(sc: dict, params: dict, overrides: dict | None, net) -> None:
+    """Validate and apply experiment variables (fleet, policy parameters, baseline) in place."""
+    if not overrides:
+        return
+    fleet = overrides.get("fleet")
+    if fleet is not None:
+        if not 1 <= len(fleet) <= 4:
+            raise ValueError("fleet must have 1-4 vehicles")
+        ids = [f["id"] for f in fleet]
+        if len(set(ids)) != len(ids):
+            raise ValueError("vehicle ids must be unique")
+        for f in fleet:
+            if f["type"] not in VEHICLE_TYPES:
+                raise ValueError(f"unknown vehicle type {f['type']}")
+            if f["start"] not in net.start_points:
+                raise ValueError(f"unknown start point {f['start']}")
+        sc["fleet"] = [{"id": f["id"], "type": f["type"], "start": f["start"]} for f in fleet]
+    for k, v in (overrides.get("params") or {}).items():
+        if v is None:
+            continue
+        if k not in PARAM_LIMITS:
+            raise ValueError(f"parameter {k} cannot be overridden")
+        lo, hi = PARAM_LIMITS[k]
+        if not lo <= float(v) <= hi:
+            raise ValueError(f"{k} must be between {lo} and {hi}")
+        params[k] = float(v)
+    if params["min_service_depth_in"] <= params["residual_in"]:
+        raise ValueError("min_service_depth_in must stay above the service residual")
+    b = overrides.get("baseline_policy")
+    if b is not None:
+        if b not in BASELINE_POLICIES:
+            raise ValueError(f"baseline_policy must be one of {BASELINE_POLICIES}")
+        params["baseline_policy"] = b
 
 
 # ---------------------------------------------------------------- storm band
@@ -136,8 +181,13 @@ class Band:
         xs = [west + (col + 0.5) * (east - west) / cols for col in range(cols)]
         ys = [north - (row + 0.5) * (north - south) / rows for row in range(rows)]
         rates = [round(self._rate_at((x, y), t, background, center), 3) for y in ys for x in xs]
+        to_ll = lambda gx, gy: net.to_ll((west + (gx + 0.5) * (east - west) / cols,
+                                          north - (gy + 0.5) * (north - south) / rows))
+        contours = [{"level": lvl, "label": label, "lines": [[to_ll(x, y) for x, y in line]
+                                                              for line in _contour(rates, cols, rows, lvl)]}
+                    for lvl, label in CONTOUR_LEVELS if max(rates) > lvl]
         return {"corners": corners, "width": cols, "height": rows,
-                "rates_in_hr": rates, "max_rate_in_hr": max(rates)}
+                "rates_in_hr": rates, "max_rate_in_hr": max(rates), "contours": contours}
 
     def polygon(self, t: float) -> list[list[float]]:
         cx, cy = self.center(t)
@@ -216,7 +266,7 @@ class World:
         }
         self.vehicles: list[Vehicle] = []
         for f in scenario["fleet"]:
-            start = net.landmarks.get(f["start"], net.center) if isinstance(f["start"], str) else tuple(f["start"])
+            start = net.start_points.get(f["start"], net.center) if isinstance(f["start"], str) else tuple(f["start"])
             self.vehicles.append(Vehicle(id=f["id"], vtype=f["type"], node=net.nearest_node(start, f["type"])))
         self.fixed_order = {v.id: routing.build_fixed_order(self, v) for v in self.vehicles}
         self.fixed_ptr: dict[str, int] = {}
@@ -420,7 +470,7 @@ class Engine:
 
     # ----------------------------------------------------------- run control
     def new_run(self, scenario_id: str, band_overrides: dict | None = None, seed: int | None = None,
-                *, forecast: NWSForecast | None = None) -> str:
+                *, forecast: NWSForecast | None = None, overrides: dict | None = None) -> str:
         if scenario_id not in self.scenarios:
             raise KeyError(scenario_id)
         sc = copy.deepcopy(self.scenarios[scenario_id])
@@ -437,6 +487,7 @@ class Engine:
             _validate_band(sc["band"])
             sc["storm_model"] = Band.MODEL
         params = {**DEFAULT_PARAMS, **sc.get("params", {})}
+        apply_overrides(sc, params, overrides, self.net)
         with self.lock:
             self.scenario = sc
             self.params = params
@@ -612,6 +663,52 @@ class Engine:
             if self.forecast is not None:
                 snapshot["weather"] = self.forecast.public(self.t)
             return snapshot
+
+
+CONTOUR_LEVELS = ((0.25, "snow edge (0.25 in/hr)"), (2.0, "heavy core (2 in/hr)"))
+
+
+def _contour(values: list[float], w: int, h: int, level: float) -> list[list[tuple[float, float]]]:
+    """Marching squares on a row-major grid; returns polylines in grid coordinates (x=col, y=row)."""
+    v = lambda x, y: values[y * w + x]
+    segs = []
+    for y in range(h - 1):
+        for x in range(w - 1):
+            a, b, c, d = v(x, y), v(x + 1, y), v(x + 1, y + 1), v(x, y + 1)
+            pts = []
+            for (x0, y0, v0), (x1, y1, v1) in (((x, y, a), (x + 1, y, b)), ((x + 1, y, b), (x + 1, y + 1, c)),
+                                               ((x + 1, y + 1, c), (x, y + 1, d)), ((x, y + 1, d), (x, y, a))):
+                if (v0 >= level) != (v1 >= level):
+                    f = (level - v0) / (v1 - v0)
+                    pts.append((round(x0 + (x1 - x0) * f, 3), round(y0 + (y1 - y0) * f, 3)))
+            if len(pts) == 2:
+                segs.append((pts[0], pts[1]))
+            elif len(pts) == 4:  # saddle: pair crossings in order
+                segs += [(pts[0], pts[1]), (pts[2], pts[3])]
+    # join segments into polylines
+    ends: dict = {}
+    for i, (p, q) in enumerate(segs):
+        ends.setdefault(p, []).append(i)
+        ends.setdefault(q, []).append(i)
+    used, lines = set(), []
+    for i in range(len(segs)):
+        if i in used:
+            continue
+        used.add(i)
+        line = list(segs[i])
+        for forward in (True, False):
+            while True:
+                tip = line[-1] if forward else line[0]
+                nxt = next((j for j in ends.get(tip, []) if j not in used), None)
+                if nxt is None:
+                    break
+                used.add(nxt)
+                p, q = segs[nxt]
+                other = q if p == tip else p
+                line.append(other) if forward else line.insert(0, other)
+        if len(line) >= 3:
+            lines.append(line[::2] if len(line) > 40 else line)
+    return lines
 
 
 def derive_effect(result: dict, params: dict) -> dict:

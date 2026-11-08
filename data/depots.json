@@ -1,0 +1,11 @@
+{
+  "note": "Candidate vehicle start points inside the modeled corridor. These are scenario assumptions, not verified City garage locations (the DPW Broadway Garage lies outside this corridor).",
+  "depots": [
+    {"name": "BNMC", "lat": 42.9012394, "lon": -78.8657992},
+    {"name": "ECMC", "lat": 42.9263064, "lon": -78.8324609},
+    {"name": "UB South Campus", "lat": 42.9533636, "lon": -78.8185843},
+    {"name": "Main St & E Ferry St", "lat": 42.915347, "lon": -78.864449},
+    {"name": "Main St & E Delavan Ave", "lat": 42.922203, "lon": -78.857289},
+    {"name": "Main St & Kensington Ave", "lat": 42.92812, "lon": -78.85230}
+  ]
+}

@@ -78,7 +78,7 @@ export default function App() {
       <div className="body">
         <div className={isForecast ? "maps with-forecast" : "maps"}>
           {isForecast && <ForecastStatus weather={weather} shown={showSnowfall} />}
-          <MapPane title="FIXED-ORDER LOOP (comparison)" accent={FIXED} network={network} world={P.fixed}
+          <MapPane title={`BASELINE: ${BASELINE_LABEL[state.scenario.params.baseline_policy] || "fixed"}`} accent={FIXED} network={network} world={P.fixed}
                    snowfall={snowfall} snowfallField={snowfallField} env={snapshot.env} syncKey="fixed" maps={maps}
                    frames={frames} selectedCam={cam} onCameraClick={setCam} camState={camState} />
           <MapPane title="ADAPTIVE (SnowTwin)" accent={ADAPT} network={network} world={P.adaptive}
@@ -100,7 +100,7 @@ export default function App() {
         </div>
         <aside className="side">
           <Proposals state={state} frames={frames} network={network} onOpen={setCam} />
-          <Controls state={state} scenarios={scenarios} />
+          <Controls state={state} scenarios={scenarios} network={network} />
           <Metrics state={state} />
           <Camera state={state} frames={frames} network={network} reloadFrames={reloadFrames} selected={cam} onSelect={setCam} />
           <Log state={state} />
@@ -129,7 +129,7 @@ function Header({ state, err }: any) {
         <span className="badge warn" title={state.scenario.provenance}>
           {state.scenario.id === FORECAST_SCENARIO ? "NWS forecast" : "Synthetic storm"}
         </span>
-        {badge("Gemini", I.gemini.verified, I.gemini.verified ? `verified ${I.gemini.last_model}` : I.gemini.configured ? (I.gemini.last_error ? `error ${I.gemini.last_error}` : "configured, not yet verified") : "no key")}
+        {badge("Gemini", I.gemini.verified, I.gemini.verified ? `verified ${I.gemini.last_model}` : I.gemini.configured ? (I.gemini.last_error ? `error ${I.gemini.last_error}` : (state.camera?.analyses || []).some((x: any) => x.source_kind === "recorded_inference") ? "saved results (↻ Re-analyze for live)" : "configured, not yet verified") : "no key")}
         {badge("Tiger Data", I.tiger.available, I.tiger.available ? `${I.tiger.rows} rows` : I.tiger.configured ? (I.tiger.last_error || "connecting") : "off")}
         {badge("Voice", I.voice.verified, I.voice.verified ? "ElevenLabs verified" : I.voice.configured ? (I.voice.last_error ? `error ${I.voice.last_error}` : "ElevenLabs configured") : "browser TTS fallback")}
         {err && <span className="badge off">{err}</span>}
@@ -197,6 +197,8 @@ function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
             {v}{i === SNOWFALL_STOPS.length - 1 ? "+" : ""}
           </span>
         ))}
+        {!forecast && <span className="sw"><i className="contour-edge" /> snow edge 0.25</span>}
+        {!forecast && <span className="sw"><i className="contour-core" /> heavy core 2</span>}
         {(!forecast || (rate ?? 0) > 0) && <span className="snowfall-rate">{rateLabel}</span>}
         {headingDeg !== undefined && <span>Synthetic snow · Band flow {COMPASS_POINTS[Math.round(headingDeg / 22.5) % 16]} ({Math.round(headingDeg)}°)</span>}
       </div>
@@ -204,7 +206,7 @@ function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
   );
 }
 
-function Controls({ state, scenarios }: any) {
+function Controls({ state, scenarios, network }: any) {
   const [draft, setDraft] = useState<{ runId: string; band: any } | null>(null);
   const [loadingScenario, setLoadingScenario] = useState<string | null>(null);
   const [restartError, setRestartError] = useState<string | null>(null);
@@ -212,10 +214,10 @@ function Controls({ state, scenarios }: any) {
   const band = draft?.runId === state.run_id ? draft.band : state.scenario.band;
   const busy = loadingScenario !== null;
 
-  const restart = async (scenarioId: string, b: any) => {
+  const restart = async (scenarioId: string, b: any, overrides: any = null) => {
     setLoadingScenario(scenarioId);
     setRestartError(null);
-    try { await api("/api/scenario", { scenario_id: scenarioId, band: b, autoplay: true }); }
+    try { await api("/api/scenario", { scenario_id: scenarioId, band: b, autoplay: true, overrides }); }
     catch (e) { setRestartError(e instanceof Error ? e.message : "Unable to start this scenario"); }
     finally { setLoadingScenario(null); }
   };
@@ -238,7 +240,7 @@ function Controls({ state, scenarios }: any) {
         {[1, 2, 4, 8].map((s) => (
           <button key={s} disabled={busy} className={state.speed === s ? "sel" : ""} onClick={() => ctl(state.playback_status === "playing" ? "play" : "pause", s)}>{s}×</button>
         ))}
-        <button onClick={() => restart(state.scenario.id, null)} disabled={busy}>↺ Reset</button>
+        <button onClick={() => restart(state.scenario.id, sid === FORECAST_SCENARIO ? null : state.scenario.band, currentOverrides(state))} disabled={busy}>↺ Reset</button>
       </div>
       <select aria-label="Scenario" value={loadingScenario ?? sid} disabled={busy} onChange={(e) => restart(e.target.value, null)}>
         {!scenarios.some((s: any) => s.id === sid) && <option value={sid}>{state.scenario.label}</option>}
@@ -256,8 +258,10 @@ function Controls({ state, scenarios }: any) {
         {slider("width_m", "Width", 400, 5000, 100, " m")}
         {slider("offset_m", "Start offset", -4000, 4000, 100, " m")}
         {slider("wobble_amp_m", "Wobble", 0, 4000, 100, " m")}
-        <button className="primary" disabled={busy} onClick={() => restart(sid, band)}>Apply & restart both</button>
+        <button className="primary" disabled={busy} onClick={() => restart(sid, band, currentOverrides(state))}>Apply & restart both</button>
       </details>}
+      <Experiment state={state} network={network} busy={busy}
+                  onApply={(ov: any) => restart(sid, sid === FORECAST_SCENARIO ? null : band, ov)} />
     </section>
   );
 }
@@ -654,5 +658,80 @@ function History({ state, onShow, showing }: any) {
         </>
       )}
     </section>
+  );
+}
+
+const BASELINE_LABEL: Record<string, string> = {
+  city_priority: "CITY PUBLISHED PRIORITY",
+  service_history: "SERVICE HISTORY (oldest first)",
+  fixed_loop: "FIXED SERVICE LOOP",
+};
+
+function currentOverrides(state: any) {
+  const p = state.scenario.params;
+  return {
+    fleet: state.scenario.fleet,
+    baseline_policy: p.baseline_policy,
+    params: { horizon_s: p.horizon_s, corridor_beta: p.corridor_beta, min_service_depth_in: p.min_service_depth_in, threshold_in: p.threshold_in },
+  };
+}
+
+function Experiment({ state, network, busy, onApply }: any) {
+  const base = currentOverrides(state);
+  const [draft, setDraft] = useState<any>(null);
+  const runRef = useRef(state.run_id);
+  useEffect(() => { if (runRef.current !== state.run_id) { runRef.current = state.run_id; setDraft(null); } }, [state.run_id]);
+  const v = draft || base;
+  const starts = Object.keys(network.start_points || {});
+  const heavy = v.fleet.filter((f: any) => f.type === "heavy_plow");
+  const compact = v.fleet.filter((f: any) => f.type === "compact_blower");
+  const setFleet = (nh: number, nc: number, hStart?: string, cStart?: string) => {
+    const hs = hStart ?? heavy[0]?.start ?? starts[0], cs = cStart ?? compact[0]?.start ?? starts[1];
+    const fleet = [
+      ...Array.from({ length: nh }, (_, i) => ({ id: `P${i + 1}`, type: "heavy_plow", start: i === 0 ? hs : (heavy[i]?.start ?? hs) })),
+      ...Array.from({ length: nc }, (_, i) => ({ id: `B${i + 1}`, type: "compact_blower", start: i === 0 ? cs : (compact[i]?.start ?? cs) })),
+    ];
+    setDraft({ ...v, fleet });
+  };
+  const setParam = (k: string, val: number) => setDraft({ ...v, params: { ...v.params, [k]: val } });
+  const cp = network.city_priority || {};
+  return (
+    <details>
+      <summary>Experiment variables (both policies restart with identical inputs)</summary>
+      <label className="slider wide"><span>Baseline</span>
+        <select value={v.baseline_policy} disabled={busy} onChange={(e) => setDraft({ ...v, baseline_policy: e.target.value })}>
+          <option value="city_priority">City published priority</option>
+          <option value="service_history">Service history (oldest first)</option>
+          <option value="fixed_loop">Fixed service loop</option>
+        </select><b /></label>
+      <label className="slider wide"><span>Heavy plows</span>
+        <select value={heavy.length} disabled={busy} onChange={(e) => setFleet(Number(e.target.value), compact.length)}>
+          {[1, 2].map((n) => <option key={n} value={n}>{n}</option>)}</select><b /></label>
+      <label className="slider wide"><span>Heavy start</span>
+        <select value={heavy[0]?.start} disabled={busy} onChange={(e) => setFleet(heavy.length, compact.length, e.target.value)}>
+          {starts.map((n) => <option key={n}>{n}</option>)}</select><b /></label>
+      <label className="slider wide"><span>Compact units</span>
+        <select value={compact.length} disabled={busy} onChange={(e) => setFleet(heavy.length, Number(e.target.value))}>
+          {[0, 1, 2].map((n) => <option key={n} value={n}>{n}</option>)}</select><b /></label>
+      {compact.length > 0 && <label className="slider wide"><span>Compact start</span>
+        <select value={compact[0]?.start} disabled={busy} onChange={(e) => setFleet(heavy.length, compact.length, undefined, e.target.value)}>
+          {starts.map((n) => <option key={n}>{n}</option>)}</select><b /></label>}
+      <label className="slider"><span>Look-ahead</span>
+        <input type="range" min={0} max={7200} step={300} value={v.params.horizon_s} disabled={busy} onChange={(e) => setParam("horizon_s", Number(e.target.value))} />
+        <b>{Math.round(v.params.horizon_s / 60)} min</b></label>
+      <label className="slider"><span>Critical weight</span>
+        <input type="range" min={0} max={6} step={0.5} value={v.params.corridor_beta} disabled={busy} onChange={(e) => setParam("corridor_beta", Number(e.target.value))} />
+        <b>1+{v.params.corridor_beta}</b></label>
+      <label className="slider"><span>Threshold</span>
+        <input type="range" min={0.5} max={4} step={0.25} value={v.params.threshold_in} disabled={busy} onChange={(e) => setParam("threshold_in", Number(e.target.value))} />
+        <b>{v.params.threshold_in} in</b></label>
+      <div className="row"><button className="primary" disabled={busy} onClick={() => onApply(v)}>Apply & restart both</button>
+        {draft && <button disabled={busy} onClick={() => setDraft(null)}>Discard</button>}</div>
+      <p className="muted small">
+        Start points are scenario assumptions. City priority tiers come from the City's published primary/secondary lists
+        {cp.source_urls?.[0] && <> (<a href={cp.source_urls[0]} target="_blank" rel="noreferrer">source</a>)</>}; hospital access counts as tier 1.
+        Look-ahead 0 or critical weight 0 are ablations of the adaptive policy.
+      </p>
+    </details>
   );
 }

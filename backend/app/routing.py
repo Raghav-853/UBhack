@@ -69,7 +69,63 @@ def _candidates(world: "World", vehicle: "Vehicle", t: float, dist: dict):
     return out
 
 
+BASELINES = {
+    "city_priority": "City published priority (primary/hospital access -> secondary -> residential)",
+    "service_history": "Service history (longest since last plowed first)",
+    "fixed_loop": "Fixed service loop (team baseline)",
+}
+
+
 def choose_fixed(world: "World", vehicle: "Vehicle", t: float, dist: dict):
+    kind = world.params.get("baseline_policy", "city_priority")
+    if kind == "city_priority":
+        return _choose_city_priority(world, vehicle, t, dist)
+    if kind == "service_history":
+        return _choose_service_history(world, vehicle, t, dist)
+    return _choose_fixed_loop(world, vehicle, t, dist)
+
+
+def _city_key(seg):
+    # Published order by tier; within a tier the route order is a north-to-south sweep (assumption).
+    return (seg.tier, -seg.mid[1], seg.mid[0], seg.id)
+
+
+def _choose_city_priority(world, vehicle, t, dist):
+    """Always serve the highest published tier that needs work (static rule; no storm look-ahead)."""
+    cands = _candidates(world, vehicle, t, dist)
+    if not cands:
+        return None, None
+    c = min(cands, key=lambda c: _city_key(world.net.segments[c[0]]))
+    seg = world.net.segments[c[0]]
+    return c, {
+        "policy": "fixed", "baseline": "city_priority",
+        "reason": f"Published priority: {seg.city_class.replace('_', ' ')} (tier {seg.tier}) first, then route order",
+        "depth_in": round(world.depth[c[0]], 2), "critical": seg.critical, "tier": seg.tier,
+        "travel_s": round(c[3]), "service_s": round(c[4]),
+    }
+
+
+def _choose_service_history(world, vehicle, t, dist):
+    """Serve the eligible segment plowed longest ago (what a service-history map shows); ties by tier, travel."""
+    cands = _candidates(world, vehicle, t, dist)
+    if not cands:
+        return None, None
+
+    def key(c):
+        last = world.last_service[c[0]]
+        return (-1e12 if last is None else last, world.net.segments[c[0]].tier, c[3], c[0])
+
+    c = min(cands, key=key)
+    seg, last = world.net.segments[c[0]], world.last_service[c[0]]
+    since = "never serviced this run" if last is None else f"last serviced {round((t - last) / 60)} min ago"
+    return c, {
+        "policy": "fixed", "baseline": "service_history",
+        "reason": f"Service history: {since}", "depth_in": round(world.depth[c[0]], 2), "critical": seg.critical,
+        "tier": seg.tier, "travel_s": round(c[3]), "service_s": round(c[4]),
+    }
+
+
+def _choose_fixed_loop(world: "World", vehicle: "Vehicle", t: float, dist: dict):
     order = world.fixed_order[vehicle.id]
     if not order:
         return None, None
@@ -84,7 +140,7 @@ def choose_fixed(world: "World", vehicle: "Vehicle", t: float, dist: dict):
             c = cands[sid]
             seg = world.net.segments[sid]
             return c, {
-                "policy": "fixed",
+                "policy": "fixed", "baseline": "fixed_loop",
                 "reason": f"Next eligible segment in fixed service loop (position {idx + 1}/{n})",
                 "loop_position": idx + 1,
                 "depth_in": round(world.depth[sid], 2),

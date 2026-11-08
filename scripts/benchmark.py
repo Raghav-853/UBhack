@@ -85,6 +85,8 @@ def main():
         "",
         "**What this is:** simulated results for a synthetic snowband over a 118-segment Buffalo corridor, "
         "one heavy plow and one compact unit per policy, identical inputs for both policies. "
+        "Baseline = City published priority (primary/hospital access -> secondary -> residential; see "
+        "`data/city_priority.json`); other baselines and randomized trials are in [EXPERIMENTS.md](EXPERIMENTS.md). "
         "It is not a historical reconstruction and not a field measurement. "
         f"The {p['threshold_in']} in exposure threshold is illustrative, not a safety standard.",
         "",
@@ -103,7 +105,8 @@ def main():
         if r["applications"]:
             lines += ["Scheduled observations applied (synthetic): " + "; ".join(
                 f"{x['frame_id']} -> {x['segment_id']} {x['effect']} at tick {x['tick']}" for x in r["applications"]), ""]
-        lines += ["| Metric | Fixed | Adaptive | Δ | |", "|---|---:|---:|---:|---|"]
+        base = engine.params.get("baseline_policy", "fixed")
+        lines += [f"| Metric | Baseline ({base}) | Adaptive | Δ | |", "|---|---:|---:|---:|---|"]
         for key, label, direction in ROWS:
             d, verdict = delta(f[key], a[key], direction)
             lines.append(f"| {label} | {f[key]} | {a[key]} | {d} | {verdict} |")

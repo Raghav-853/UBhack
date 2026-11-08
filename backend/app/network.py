@@ -34,6 +34,8 @@ class Segment:
     xy: list[tuple[float, float]]
     mid: tuple[float, float]
     osm_way_ids: list[int] = field(default_factory=list)
+    osm_tier: int = 0
+    city_class: str = "residential"  # primary | secondary | hospital_access | residential (City list)
     heavy_ok: bool = False       # heavy plow may traverse and service
     compact_service: bool = False  # compact blower may service
 
@@ -79,6 +81,31 @@ class Network:
         self.landmarks = {
             k: self.to_xy(v["lon"], v["lat"]) for k, v in self.meta.get("landmarks", {}).items()
         }
+        # Candidate start points (scenario assumptions) for experiments.
+        self.start_points = dict(self.landmarks)
+        depots_file = DATA / "depots.json"
+        if depots_file.exists():
+            for d in json.loads(depots_file.read_text(encoding="utf-8"))["depots"]:
+                self.start_points[d["name"]] = self.to_xy(d["lon"], d["lat"])
+
+        # Priority tiers from the City's published primary/secondary plow lists (data/city_priority.json).
+        # Tier 1 = City primary or hospital access (critical segments near ECMC/BNMC), 2 = City secondary,
+        # 3 = everything else (residential / not on either list).
+        self.city_priority = {}
+        cp_file = DATA / "city_priority.json"
+        if cp_file.exists():
+            self.city_priority = json.loads(cp_file.read_text(encoding="utf-8"))
+            primary, secondary = set(self.city_priority["primary"]), set(self.city_priority["secondary"])
+            for s in self.segments.values():
+                s.osm_tier = s.tier
+                if s.name in primary:
+                    s.city_class, s.tier = "primary", 1
+                elif s.critical and s.width_class == "wide":
+                    s.city_class, s.tier = "hospital_access", 1
+                elif s.name in secondary:
+                    s.city_class, s.tier = "secondary", 2
+                else:
+                    s.city_class, s.tier = "residential", 3
         xs = [p[0] for s in self.segments.values() for p in s.xy]
         ys = [p[1] for s in self.segments.values() for p in s.xy]
         self.bounds = (min(xs), min(ys), max(xs), max(ys))
@@ -108,6 +135,7 @@ class Network:
                     "width_class": s.width_class, "priority_tier": s.tier, "critical": s.critical,
                     "length_m": s.length_m, "coords": [self.to_ll(p) for p in s.xy],
                     "heavy_ok": s.heavy_ok, "compact_service": s.compact_service,
+                    "city_class": s.city_class,
                     "u": s.u, "v": s.v,
                 }
                 for s in self.segments.values()
@@ -117,6 +145,8 @@ class Network:
             "source": self.meta.get("source"),
             "assumptions": self.meta.get("assumptions", []),
             "vehicle_types": VEHICLE_TYPES,
+            "start_points": {k: self.to_ll(v) for k, v in self.start_points.items()},
+            "city_priority": {k: self.city_priority.get(k) for k in ("source", "source_urls", "published_rules", "limitations")},
             "file_hash": self.file_hash,
         }
 
