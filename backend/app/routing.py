@@ -88,25 +88,34 @@ def choose_fixed(world: "World", vehicle: "Vehicle", t: float, dist: dict):
 def _choose_city_priority(world, vehicle, t, dist):
     """Pre-determined route (Snow Plan p. 8): follow the vehicle's fixed route in order, plan tiers first.
     Skip stops that do not need plowing; no corridor-wide re-optimization, no storm look-ahead."""
+    # The crew drives every stop of its route in order. Whether a stop gets plowed is decided on arrival
+    # (World._advance, leg mode "route"): plow at work speed if it has reached the eligibility depth,
+    # otherwise drive through at travel speed. Only closed or unreachable stops are skipped.
     route = world.route_order.setdefault(vehicle.id, build_city_route(world, vehicle))
     if not route:
         return None, None
-    cands = {c[0]: c for c in _candidates(world, vehicle, t, dist)}
+    spec = VEHICLE_TYPES[vehicle.vtype]
     key = ("route", vehicle.id)
     ptr = world.fixed_ptr.get(key, 0)
     n = len(route)
     for i in range(n):
         idx = (ptr + i) % n
         sid = route[idx]
-        if sid in cands:
-            world.fixed_ptr[key] = (idx + 1) % n
-            c, seg = cands[sid], world.net.segments[sid]
-            return c, {
-                "policy": "fixed", "baseline": "city_priority",
-                "reason": f"Pre-determined route stop {idx + 1}/{n} ({seg.city_class.replace('_', ' ')}, tier {seg.tier})",
-                "depth_in": round(world.depth[sid], 2), "critical": seg.critical, "tier": seg.tier,
-                "route_stop": idx + 1, "travel_s": round(c[3]), "service_s": round(c[4]),
-            }
+        seg = world.net.segments[sid]
+        if world.env.is_closed(sid, t):
+            continue
+        du, dv = dist.get(seg.u), dist.get(seg.v)
+        if du is None and dv is None:
+            continue
+        entry, exit_, travel = (seg.u, seg.v, du) if dv is None or (du is not None and du <= dv) else (seg.v, seg.u, dv)
+        world.fixed_ptr[key] = (idx + 1) % n
+        c = (sid, entry, exit_, travel, seg.length_m / spec["travel_mps"])
+        return c, {
+            "policy": "fixed", "baseline": "city_priority", "route_leg": True,
+            "reason": f"Driving pre-determined route, stop {idx + 1}/{n} ({seg.city_class.replace('_', ' ')}, tier {seg.tier})",
+            "depth_in": round(world.depth[sid], 2), "critical": seg.critical, "tier": seg.tier,
+            "route_stop": idx + 1, "travel_s": round(travel),
+        }
     return None, None
 
 
@@ -216,6 +225,8 @@ def choose_adaptive(world: "World", vehicle: "Vehicle", t: float, dist: dict):
                 ),
                 "depth_in": round(world.depth[sid], 2),
                 "predicted_in": round(predicted, 2),
+                "forecast_source": ("nws" if world.forecast is not None
+                                    else world.params.get("forecast_mode", "model")),
                 "priority": round(priority, 2),
                 "score": round(score * 60, 3),
                 "critical": seg.critical,

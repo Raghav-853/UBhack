@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .network import DATA, VEHICLE_TYPES, Network, point_along
-from . import routing
+from . import forecast_model, routing
 
 if TYPE_CHECKING:
     from .nws import NWSForecast
@@ -36,6 +36,7 @@ DEFAULT_PARAMS = {
     "visibility_factor": {"reduced": 0.8, "poor": 0.6},
     "slowdown_duration_s": 3600,
     "baseline_policy": "city_priority",  # comparison world: city_priority | service_history | fixed_loop
+    "forecast_mode": "model",    # synthetic bands: model (learned, data/models) | oracle (reads future band)
 }
 
 # Experiment variables that may be overridden per run, with allowed ranges.
@@ -235,6 +236,7 @@ class Vehicle:
     next_eval: float = 0.0
     replan_at_node: bool = False
     explanation: dict | None = None
+    route_service: bool = False  # baseline route leg: plow (True) or drive through (False), decided on arrival
 
     def position(self, net: Network) -> tuple[float, float]:
         if self.legs and self.progress > 0:
@@ -279,9 +281,12 @@ class World:
     def forecast_in(self, sid: str, t: float, horizon: float) -> float:
         if self.forecast is not None:
             return self.forecast.amount_in(sid, t, horizon)
-        # Synthetic scenarios look ahead using their declared band motion.
         assert self.band is not None
         p = self.net.segments[sid].mid
+        if self.params.get("forecast_mode", "model") == "model":
+            # Learned forecast from currently observable rates (no access to future band motion).
+            return forecast_model.predict_amount_in(self.band, p, t, horizon, self.background)
+        # "oracle": read the declared future band motion (upper bound, for comparison only).
         samples = [self.band.rate(p, t + horizon * k / 4, self.background) for k in range(5)]
         return sum(samples) / len(samples) * horizon / 3600
 
@@ -299,10 +304,12 @@ class World:
             return
         sid, entry, exit_, _, _ = choice
         legs = routing.legs_for_path(self, v, paths[entry], t)
-        legs.append((sid, entry, exit_, "service"))
+        route_leg = bool(info.get("route_leg"))
+        legs.append((sid, entry, exit_, "route" if route_leg else "service"))
         v.legs, v.target = legs, sid
         v.status = legs[0][3] == "service" and "servicing" or "traveling"
-        self.reserved[sid] = v.id
+        if not route_leg:
+            self.reserved[sid] = v.id
         seg = self.net.segments[sid]
         info.update({"target": sid, "target_name": seg.name or seg.highway, "vehicle_id": v.id, "sim_time_s": t})
         v.explanation = info
@@ -369,16 +376,23 @@ class World:
                 if v.status == "idle":
                     break
                 continue
-            speed = (spec["service_mps"] if mode == "service" else spec["travel_mps"]) * self.env.factor(sid, t)
+            eff = mode
+            if mode == "route":
+                if v.progress == 0:
+                    v.route_service = (self.depth[sid] >= self.params["min_service_depth_in"]
+                                       and self.net.can_service(v.vtype, seg))
+                eff = "service" if v.route_service else "travel"
+                v.status = "servicing" if eff == "service" else "traveling"
+            speed = (spec["service_mps"] if eff == "service" else spec["travel_mps"]) * self.env.factor(sid, t)
             remaining = seg.length_m - v.progress
             need = remaining / speed
-            key = "service_m" if mode == "service" else "travel_m"
+            key = "service_m" if eff == "service" else "travel_m"
             if need <= budget:
                 budget -= need
                 self.m[key] += remaining
                 v.progress, v.node = 0.0, b
                 v.legs.pop(0)
-                if mode == "service":
+                if eff == "service":
                     self._complete_service(v, sid, t + dt - budget)
                 if not v.legs or v.replan_at_node:
                     v.replan_at_node = False

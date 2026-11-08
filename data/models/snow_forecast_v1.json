@@ -1,0 +1,188 @@
+{
+ "name": "snow_forecast_v1",
+ "kind": "ridge_regression_per_horizon",
+ "target": "mean snowfall rate (in/hr) over [t, t + horizon)",
+ "features": [
+  "bias",
+  "r_now",
+  "r_lag5m",
+  "r_lag10m",
+  "r_lag15m",
+  "r_across-2000",
+  "r_across-1000",
+  "r_across+1000",
+  "r_across+2000",
+  "r_upwind3k",
+  "r_across-1000_lag10m",
+  "r_across+1000_lag10m"
+ ],
+ "training": {
+  "seed": 7,
+  "storms": 80,
+  "test_storms": 16,
+  "train_rows": 368640,
+  "segments_per_storm": 80,
+  "step_s": 300,
+  "ridge_lambda": 1.0,
+  "band_model": "advecting-cells-regional-v2"
+ },
+ "models": [
+  {
+   "horizon_s": 900,
+   "coef": [
+    0.003095,
+    0.327892,
+    0.032378,
+    -0.136952,
+    0.042935,
+    0.024814,
+    0.264893,
+    0.156933,
+    0.01703,
+    0.366874,
+    -0.056511,
+    -0.069672
+   ],
+   "test": {
+    "mae_in_hr": 0.1866,
+    "persistence_mae_in_hr": 0.3399,
+    "r2": 0.844,
+    "persistence_r2": 0.4609,
+    "n": 92160
+   }
+  },
+  {
+   "horizon_s": 1800,
+   "coef": [
+    0.018158,
+    0.235364,
+    0.042137,
+    -0.121259,
+    0.067522,
+    0.07697,
+    0.266837,
+    0.169659,
+    0.082146,
+    0.300233,
+    -0.08595,
+    -0.098221
+   ],
+   "test": {
+    "mae_in_hr": 0.2702,
+    "persistence_mae_in_hr": 0.4013,
+    "r2": 0.6874,
+    "persistence_r2": 0.2143,
+    "n": 92160
+   }
+  },
+  {
+   "horizon_s": 3300,
+   "coef": [
+    0.045477,
+    0.168958,
+    0.032451,
+    -0.096714,
+    0.096723,
+    0.1003,
+    0.213456,
+    0.125345,
+    0.119833,
+    0.239898,
+    -0.06928,
+    -0.061723
+   ],
+   "test": {
+    "mae_in_hr": 0.3269,
+    "persistence_mae_in_hr": 0.4582,
+    "r2": 0.5478,
+    "persistence_r2": -0.0782,
+    "n": 92160
+   }
+  },
+  {
+   "horizon_s": 5400,
+   "coef": [
+    0.06333,
+    0.111177,
+    -0.003576,
+    -0.069655,
+    0.129508,
+    0.096129,
+    0.153528,
+    0.082704,
+    0.134594,
+    0.221704,
+    -0.018556,
+    -0.020288
+   ],
+   "test": {
+    "mae_in_hr": 0.3145,
+    "persistence_mae_in_hr": 0.4612,
+    "r2": 0.556,
+    "persistence_r2": -0.1751,
+    "n": 92160
+   }
+  },
+  {
+   "horizon_s": 7200,
+   "coef": [
+    0.062703,
+    0.082765,
+    -0.015752,
+    -0.048316,
+    0.149399,
+    0.095443,
+    0.122326,
+    0.058562,
+    0.137751,
+    0.212261,
+    0.016391,
+    -0.00101
+   ],
+   "test": {
+    "mae_in_hr": 0.3121,
+    "persistence_mae_in_hr": 0.4664,
+    "r2": 0.5518,
+    "persistence_r2": -0.2195,
+    "n": 92160
+   }
+  }
+ ],
+ "demo_scenarios_h3300": {
+  "clear_weather": {
+   "mae_in_hr": 0.0455,
+   "persistence_mae_in_hr": 0.0,
+   "r2": -34.2914,
+   "persistence_r2": 1.0,
+   "n": 17064
+  },
+  "demo_18s": {
+   "mae_in_hr": 0.41,
+   "persistence_mae_in_hr": 0.6074,
+   "r2": -0.0029,
+   "persistence_r2": -1.9982,
+   "n": 17064
+  },
+  "moving_band": {
+   "mae_in_hr": 0.41,
+   "persistence_mae_in_hr": 0.6074,
+   "r2": -0.0029,
+   "persistence_r2": -1.9982,
+   "n": 17064
+  },
+  "moving_band_obstruction": {
+   "mae_in_hr": 0.41,
+   "persistence_mae_in_hr": 0.6074,
+   "r2": -0.0029,
+   "persistence_r2": -1.9982,
+   "n": 17064
+  },
+  "stationary_band": {
+   "mae_in_hr": 0.5193,
+   "persistence_mae_in_hr": 0.4101,
+   "r2": 0.2736,
+   "persistence_r2": 0.4366,
+   "n": 17064
+  }
+ }
+}
