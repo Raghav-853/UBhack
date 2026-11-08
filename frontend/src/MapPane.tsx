@@ -8,7 +8,7 @@ const STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
 const BLANK: any = {
   version: 8,
   sources: {},
-  layers: [{ id: "bg", type: "background", paint: { "background-color": "#090a0c" } }],
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#0d2342" } }],
 };
 
 export const DEPTH_STOPS: [number, string][] = [
@@ -194,7 +194,7 @@ export default function MapPane({
   const m = world?.metrics;
 
   return (
-    <div className="pane">
+    <div className={`pane pane-${syncKey}`}>
       <div className="pane-header">
         <div className="pane-title-group">
           <span className="pane-indicator" style={{ background: accent }} />

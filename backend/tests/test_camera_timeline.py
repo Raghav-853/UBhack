@@ -180,6 +180,7 @@ class DecisionTests(unittest.TestCase):
         from types import SimpleNamespace
 
         engine = Engine()
+        engine.camera_triggered["CAM"] = {"sim_time_s": 0, "depth_in": 2.0}
         sid = next(iter(engine.net.segments))
         clean = normalize(observation(visibility_class="good", snow_depth_cm=0))
         poor = normalize(observation(5))

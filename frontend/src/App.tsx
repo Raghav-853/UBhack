@@ -4,8 +4,8 @@ import { Icon } from "./icons";
 import { cameraDecisionKey, playbackAnalysis } from "./cameraAnalysis";
 import type { SnowfallAreas, SnowfallField } from "./MapPane";
 
-const FIXED = "#e59934";
-const ADAPT = "#38bdf8";
+const FIXED = "#f59e0b";
+const ADAPT = "#ffffff";
 const FORECAST_SCENARIO = "nws_forecast";
 const COMPASS_POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 const forecastTime = new Intl.DateTimeFormat("en-US", {
@@ -713,8 +713,8 @@ function Metrics({ state, defaultAll = false, highlight = false }: any) {
         <thead>
           <tr>
             <th>Metric</th>
-            <th style={{ color: FIXED }}>Baseline</th>
-            <th style={{ color: ADAPT }}>Adaptive</th>
+            <th className="col-baseline">Baseline</th>
+            <th className="col-adaptive">Adaptive</th>
             <th>Delta</th>
           </tr>
         </thead>
@@ -1389,8 +1389,8 @@ function History({ state, onShow, showing }: any) {
                   <thead>
                     <tr>
                       <th className="mono">{fmtClock(snap.sim_time_s)}</th>
-                      <th style={{ color: FIXED }}>Baseline</th>
-                      <th style={{ color: ADAPT }}>Adaptive</th>
+                      <th className="col-baseline">Baseline</th>
+                      <th className="col-adaptive">Adaptive</th>
                     </tr>
                   </thead>
                   <tbody>
