@@ -1,6 +1,6 @@
 # SnowBull — Handoff (learned forecast, demo scenario, dashboard polish)
 
-**As of:** 2026-11-08 · branch `feat/snowbull-forecast-demo` (not merged to `main`) · commits `e8de652`, `e5df26e`, `07bf03b` on top of `7e711b4`.
+**As of:** 2026-11-08 · on `main` · commits `e8de652`, `e5df26e`, `07bf03b` on top of `7e711b4`.
 **Read with:** [HANDOFF.md](HANDOFF.md) (Snow Plan baselines, tiers, experiment variables — still valid).
 
 ## TL;DR
@@ -81,8 +81,6 @@ Policy Comparison metrics are **cumulative from T+0** (exposure, distance, passe
 4. **Tests:** `pytest` is not installed in `.venv`; `backend/tests` was not run for these changes. Verified by import, headless engine runs, `tsc --noEmit`, and `npm run build`.
 5. **Environment:** system Python 3.12 has a FastAPI/Starlette mismatch (`Router.__init__() got an unexpected keyword argument 'on_startup'`). Use `.venv` (as `run.ps1` does).
 6. **Security:** `Docs/tiger-cloud-db-29101-credentials.txt` is tracked in git despite `.gitignore`. Remove it from the index and rotate the credentials.
-7. Branch `feat/snowbull-forecast-demo` is not pushed or merged.
-
 ## Commands
 
 ```powershell
