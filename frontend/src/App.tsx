@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import MapPane, { DEPTH_STOPS, SNOWFALL_STOPS } from "./MapPane";
+import { Icon } from "./icons";
 import type { SnowfallAreas, SnowfallField } from "./MapPane";
 
 const FIXED = "#f59e0b";
@@ -26,6 +27,8 @@ async function api(path: string, body?: any) {
   if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : r.statusText || `Request failed (${r.status})`);
   return j;
 }
+
+const fmtCount = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 
 const fmtClock = (s: number) => {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
@@ -89,7 +92,7 @@ export default function App() {
                   shown={showSnowfall} onToggle={setShowSnowfall} />
           {view && (
             <div className="histbanner">
-              🗄 Viewing stored checkpoint {fmtClock(view.sim_time_s)} from Tiger Data (read-only) · run {view.run_id}
+              <Icon name="db" /> Stored checkpoint {fmtClock(view.sim_time_s)} <span className="muted" title={`Read-only, from Tiger Data · run ${view.run_id}`}>read-only</span>
               <button onClick={() => setHist(null)}>Back to live</button>
             </div>
           )}
@@ -114,9 +117,14 @@ export default function App() {
 function Header({ state, err }: any) {
   const pct = Math.min(100, (100 * state.sim_time_s) / state.duration_s);
   const I = state.integrations;
-  const badge = (label: string, on: boolean, text: string) => (
-    <span className={`badge ${on ? "on" : "off"}`} title={text}>{label}: {text}</span>
+  // Short label on the badge; full status in the hover tooltip.
+  const badge = (label: string, level: "on" | "off" | "err", short: string, detail: string) => (
+    <span className={`badge ${level}`} title={`${label}: ${detail}`}>
+      <i className="dot" />{label}{short && <span className="muted"> {short}</span>}
+    </span>
   );
+  const hasSaved = (state.camera?.analyses || []).some((x: any) => x.source_kind === "recorded_inference");
+  const g = I.gemini, t = I.tiger, v = I.voice;
   return (
     <header>
       <div className="brand">❄ SnowTwin <b>WNY</b></div>
@@ -129,10 +137,16 @@ function Header({ state, err }: any) {
         <span className="badge warn" title={state.scenario.provenance}>
           {state.scenario.id === FORECAST_SCENARIO ? "NWS forecast" : "Synthetic storm"}
         </span>
-        {badge("Gemini", I.gemini.verified, I.gemini.verified ? `verified ${I.gemini.last_model}` : I.gemini.configured ? (I.gemini.last_error ? `error ${I.gemini.last_error}` : (state.camera?.analyses || []).some((x: any) => x.source_kind === "recorded_inference") ? "saved results (↻ Re-analyze for live)" : "configured, not yet verified") : "no key")}
-        {badge("Tiger Data", I.tiger.available, I.tiger.available ? `${I.tiger.rows} rows` : I.tiger.configured ? (I.tiger.last_error || "connecting") : "off")}
-        {badge("Voice", I.voice.verified, I.voice.verified ? "ElevenLabs verified" : I.voice.configured ? (I.voice.last_error ? `error ${I.voice.last_error}` : "ElevenLabs configured") : "browser TTS fallback")}
-        {err && <span className="badge off">{err}</span>}
+        {badge("Gemini", g.verified ? "on" : g.last_error ? "err" : "off",
+          g.verified ? "" : g.configured ? (g.last_error ? "error" : hasSaved ? "saved" : "") : "off",
+          g.verified ? `verified (${g.last_model})` : g.configured ? (g.last_error ? `error ${g.last_error}` : hasSaved ? "showing saved results; ↻ Re-analyze for a fresh call" : "configured, not yet verified") : "no API key")}
+        {badge("Tiger", t.available ? "on" : t.last_error ? "err" : "off",
+          t.available ? fmtCount(t.rows) : t.configured ? (t.last_error ? "error" : "…") : "off",
+          t.available ? `${t.rows} rows written` : t.configured ? (t.last_error || "connecting") : "DATABASE_URL not set")}
+        {badge("Voice", v.verified ? "on" : v.last_error ? "err" : "off",
+          v.verified ? "" : v.configured ? (v.last_error ? "error" : "") : "browser",
+          v.verified ? "ElevenLabs verified" : v.configured ? (v.last_error ? `error ${v.last_error}` : "ElevenLabs configured, not yet verified") : "no key; using browser speech")}
+        {err && <span className="badge err"><i className="dot" />{err}</span>}
       </div>
     </header>
   );
@@ -156,16 +170,14 @@ function forecastTimestamp(iso: string) {
 
 function ForecastStatus({ weather, shown }: { weather: ForecastWeather | null; shown: boolean }) {
   const status = weather ? weather.max_rate_in_hr === 0
-    ? "No snowfall forecast (0 in/h)" : "Snowfall forecast loaded"
-    : "Forecast data unavailable";
+    ? "No snow forecast" : `Up to ${Number(weather.max_rate_in_hr.toFixed(2))} in/h`
+    : "Forecast unavailable";
   return (
-    <div className="forecast-strip">
-      <b>NWS forecast</b>
+    <div className="forecast-strip"
+         title={weather ? `${weather.areas.features.length} NWS grid cells (dashed lines)${shown ? "" : "; layer hidden"}` : undefined}>
+      <b>NWS</b>
       <strong role="status">{status}</strong>
-      {weather && <>
-        <span>Valid {forecastTimestamp(weather.valid_at)} · Issued {forecastTimestamp(weather.issued_at)}</span>
-        <span>{shown ? `Dashed lines show ${weather.areas.features.length} forecast grids` : "Weather layer hidden"}</span>
-      </>}
+      {weather && <span className="muted">for {forecastTimestamp(weather.valid_at)} · issued {forecastTimestamp(weather.issued_at)}</span>}
     </div>
   );
 }
@@ -175,33 +187,35 @@ function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
   shown: boolean; onToggle: (shown: boolean) => void;
 }) {
   const rateLabel = Number.isFinite(rate) ? rate === 0
-    ? "No simulated snowfall (0 in/h)"
-    : `Max ${rate < 0.01 ? "<0.01" : Number(rate.toFixed(2))} in/h`
-    : "Snowfall rate unavailable";
+    ? "no snow"
+    : `max ${rate < 0.01 ? "<0.01" : Number(rate.toFixed(2))}`
+    : "n/a";
   return (
     <div className="legend" role="group" aria-label="Map legend">
       <div className="legend-row">
-        <b>Estimated road depth (in)</b>
+        <b title="Estimated snow depth on the road, inches">Road depth (in)</b>
         {DEPTH_STOPS.map(([v, c]) => <span key={v} className="sw"><i style={{ background: c }} />{v}</span>)}
-        <span className="sw"><i className="thick" /> critical corridor</span>
+        <span className="sep" />
+        <span className="sw" title="Critical corridor (thicker line)"><i className="thick" /> critical</span>
         <span className="sw"><i className="closed" /> closed</span>
-        <span className="sw"><i className="vdot heavy" /> heavy plow</span>
-        <span className="sw"><i className="vdot compact" /> compact blower</span>
-        <span className="sw"><i className="fac" style={{ background: "#db2777" }} />H <i className="fac" style={{ background: "#2563eb" }} />P <i className="fac" style={{ background: "#ea580c" }} />F Snow Plan facilities</span>
+        <span className="sw"><i className="vdot heavy" /> heavy</span>
+        <span className="sw"><i className="vdot compact" /> compact</span>
+        <span className="sw" title="Snow Plan facilities: H hospital, P police, F fire">
+          <i className="fac" style={{ background: "#db2777" }} /><i className="fac" style={{ background: "#2563eb" }} /><i className="fac" style={{ background: "#ea580c" }} /> facilities
+        </span>
       </div>
       <div className="legend-row snowfall-legend">
-        <label className="sw"><input type="checkbox" checked={shown} onChange={(e) => onToggle(e.target.checked)} /> Show snowfall</label>
-        <b>Snowfall rate (in/h)</b>
+        <label className="sw"><input type="checkbox" checked={shown} onChange={(e) => onToggle(e.target.checked)} /> <b>Snowfall (in/h)</b></label>
         {SNOWFALL_STOPS.map(([v, color, opacity], i) => (
           <span key={v} className="sw">
             <i className="snowfall-swatch" style={{ background: color, opacity }} />
             {v}{i === SNOWFALL_STOPS.length - 1 ? "+" : ""}
           </span>
         ))}
-        {!forecast && <span className="sw"><i className="contour-edge" /> snow edge 0.25</span>}
-        {!forecast && <span className="sw"><i className="contour-core" /> heavy core 2</span>}
+        {!forecast && <span className="sw" title="Snow edge contour, 0.25 in/h"><i className="contour-edge" /> edge</span>}
+        {!forecast && <span className="sw" title="Heavy core contour, 2 in/h"><i className="contour-core" /> core</span>}
         {(!forecast || (rate ?? 0) > 0) && <span className="snowfall-rate">{rateLabel}</span>}
-        {headingDeg !== undefined && <span>Synthetic snow · Band flow {COMPASS_POINTS[Math.round(headingDeg / 22.5) % 16]} ({Math.round(headingDeg)}°)</span>}
+        {headingDeg !== undefined && <span title={`Synthetic band flowing toward ${Math.round(headingDeg)}°`}>→ {COMPASS_POINTS[Math.round(headingDeg / 22.5) % 16]}</span>}
       </div>
     </div>
   );
@@ -233,33 +247,34 @@ function Controls({ state, scenarios, network }: any) {
   );
   return (
     <section>
-      <h3>Scenario & playback</h3>
+      <h3>Playback</h3>
       <div className="row">
         {state.playback_status === "playing"
-          ? <button disabled={busy} onClick={() => ctl("pause")}>⏸ Pause</button>
-          : <button className="primary" disabled={busy} onClick={() => ctl("play")}>▶ Play</button>}
+          ? <button disabled={busy} onClick={() => ctl("pause")}><Icon name="pause" /> Pause</button>
+          : <button className="primary" disabled={busy} onClick={() => ctl("play")}><Icon name="play" /> Play</button>}
         {[1, 2, 4, 8].map((s) => (
           <button key={s} disabled={busy} className={state.speed === s ? "sel" : ""} onClick={() => ctl(state.playback_status === "playing" ? "play" : "pause", s)}>{s}×</button>
         ))}
-        <button onClick={() => restart(state.scenario.id, sid === FORECAST_SCENARIO ? null : state.scenario.band, currentOverrides(state))} disabled={busy}>↺ Reset</button>
+        <button onClick={() => restart(state.scenario.id, sid === FORECAST_SCENARIO ? null : state.scenario.band, currentOverrides(state))} disabled={busy} title="Restart both policies with the same inputs"><Icon name="reset" /> Reset</button>
       </div>
-      <select aria-label="Scenario" value={loadingScenario ?? sid} disabled={busy} onChange={(e) => restart(e.target.value, null)}>
+      <select aria-label="Scenario" value={loadingScenario ?? sid} disabled={busy} onChange={(e) => restart(e.target.value, null)}
+              title={state.scenario.description}>
         {!scenarios.some((s: any) => s.id === sid) && <option value={sid}>{state.scenario.label}</option>}
-        {scenarios.map((s: any) => <option key={s.id} value={s.id}>{s.label}</option>)}
+        {scenarios.map((s: any) => <option key={s.id} value={s.id} title={s.description}>{s.label}</option>)}
       </select>
-      {busy && <p className="muted small scenario-message" role="status">{loadingScenario === FORECAST_SCENARIO ? "Loading NWS forecast…" : "Starting scenario…"}</p>}
-      {restartError && <p className="bad small scenario-message" role="alert">{restartError} <span className="muted">Still showing {state.scenario.label}.</span></p>}
-      <p className="muted small">{state.scenario.description}</p>
-      {sid === FORECAST_SCENARIO && <p className="muted small">Road snow starts at an assumed {state.scenario.initial_depth_in ?? 0} in. The simulation adds forecast snowfall from that point.</p>}
+      {busy && <p className="muted small scenario-message" role="status">{loadingScenario === FORECAST_SCENARIO ? "Loading NWS forecast…" : "Starting…"}</p>}
+      {restartError && <p className="bad small scenario-message" role="alert" title={`Still showing ${state.scenario.label}`}>{restartError}</p>}
+      <p className="muted small clamp1" title={sid === FORECAST_SCENARIO
+        ? `${state.scenario.description} Road snow starts at an assumed ${state.scenario.initial_depth_in ?? 0} in.`
+        : state.scenario.description}>{state.scenario.description}</p>
       {band && sid !== FORECAST_SCENARIO && <details>
-        <summary>Steer the snowband (resets both policies together)</summary>
-        <p className="muted small">Patches of light snow can fall outside the main band. Wobble shifts the band sideways.</p>
+        <summary title="Restarts both policies with the same storm. Wobble shifts the band sideways; light snow can fall outside it.">Steer snowband</summary>
         {slider("rate_in_hr", "Peak rate", 0, 6, 0.5, " in/hr")}
         {slider("heading_deg", "Flow toward", 0, 355, 5, "°")}
         {slider("width_m", "Width", 400, 5000, 100, " m")}
         {slider("offset_m", "Start offset", -4000, 4000, 100, " m")}
         {slider("wobble_amp_m", "Wobble", 0, 4000, 100, " m")}
-        <button className="primary" disabled={busy} onClick={() => restart(sid, band, currentOverrides(state))}>Apply & restart both</button>
+        <button className="primary" disabled={busy} onClick={() => restart(sid, band, currentOverrides(state))}>Apply & restart</button>
       </details>}
       <Experiment state={state} network={network} busy={busy}
                   onApply={(ov: any) => restart(sid, sid === FORECAST_SCENARIO ? null : band, ov)} />
@@ -267,50 +282,63 @@ function Controls({ state, scenarios, network }: any) {
   );
 }
 
-const ROWS: [string, string, "low" | "high", (v: any) => string][] = [
-  ["critical_exposure_min", "Critical-segment exposure (min > threshold)", "low", (v) => v.toFixed(0)],
-  ["critical_over_now", "Critical segments over threshold now", "low", (v) => String(v)],
-  ["avg_critical_depth_in", "Avg critical depth (in)", "low", (v) => v.toFixed(2)],
-  ["exposure_min", "All-segment exposure (min)", "low", (v) => v.toFixed(0)],
-  ["distance_km", "Distance driven (km)", "low", (v) => v.toFixed(1)],
-  ["deadhead_pct", "Deadhead (travel not plowing, %)", "low", (v) => v.toFixed(0)],
-  ["services", "Completed service passes", "high", (v) => String(v)],
-  ["reaccumulations", "Re-accumulations after service", "low", (v) => String(v)],
-  ["crew_hours", "Active crew-hours", "low", (v) => v.toFixed(1)],
-  ["inch_km_per_crew_hour", "Snow cleared per crew-hour (in·km)", "high", (v) => v.toFixed(1)],
+// [key, short label, tooltip, lower/higher is better, format, shown by default]
+const ROWS: [string, string, string, "low" | "high", (v: any) => string, boolean][] = [
+  ["critical_exposure_min", "Critical exposure (min)", "Minutes critical segments spent above the depth threshold", "low", (v) => v.toFixed(0), true],
+  ["avg_critical_depth_in", "Critical depth (in)", "Average snow depth on critical segments", "low", (v) => v.toFixed(2), true],
+  ["distance_km", "Distance (km)", "Total distance driven", "low", (v) => v.toFixed(1), true],
+  ["inch_km_per_crew_hour", "Cleared / crew-hr", "Snow cleared per active crew-hour (in·km)", "high", (v) => v.toFixed(1), true],
+  ["critical_over_now", "Critical over now", "Critical segments above the threshold right now", "low", (v) => String(v), false],
+  ["exposure_min", "All exposure (min)", "Minutes all segments spent above the threshold", "low", (v) => v.toFixed(0), false],
+  ["deadhead_pct", "Deadhead (%)", "Share of travel spent not plowing", "low", (v) => v.toFixed(0), false],
+  ["services", "Service passes", "Completed plowing passes", "high", (v) => String(v), false],
+  ["reaccumulations", "Re-accumulations", "Segments that filled back in after service", "low", (v) => String(v), false],
+  ["crew_hours", "Crew-hours", "Active crew-hours", "low", (v) => v.toFixed(1), false],
 ];
 
 function Metrics({ state }: any) {
+  const [all, setAll] = useState(false);
   const f = state.policies.fixed.metrics, a = state.policies.adaptive.metrics;
   const thr = state.scenario.params.threshold_in;
   return (
     <section>
-      <h3>Same storm, same fleet — measured</h3>
+      <h3 title="Same storm, same fleet, both policies measured side by side">Results</h3>
       <table className="metrics">
-        <thead><tr><th /><th style={{ color: FIXED }}>Fixed</th><th style={{ color: ADAPT }}>Adaptive</th><th>Δ</th></tr></thead>
+        <thead><tr><th /><th style={{ color: FIXED }}>Baseline</th><th style={{ color: ADAPT }}>Adaptive</th><th>Δ</th></tr></thead>
         <tbody>
-          {ROWS.map(([k, label, dir, fmt]) => {
+          {ROWS.filter((r) => all || r[5]).map(([k, label, tip, dir, fmt]) => {
             const fv = f[k] ?? 0, av = a[k] ?? 0;
             const better = dir === "low" ? av < fv : av > fv;
             const same = av === fv;
             const delta = fv !== 0 ? `${av - fv > 0 ? "+" : ""}${(((av - fv) / Math.abs(fv)) * 100).toFixed(0)}%` : `${av - fv > 0 ? "+" : ""}${fmt(av - fv)}`;
             return (
               <tr key={k}>
-                <td>{label}</td><td>{fmt(fv)}</td><td>{fmt(av)}</td>
+                <td title={tip}>{label}</td><td>{fmt(fv)}</td><td>{fmt(av)}</td>
                 <td className={same ? "" : better ? "good" : "bad"}>{same ? "—" : delta}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p className="muted small">Threshold {thr} in is illustrative, not a safety standard. Simulated results under the stated scenario assumptions; run {state.run_id} · v{state.scenario_version}.</p>
+      <div className="row small between">
+        <button className="link" onClick={() => setAll(!all)}>{all ? "Fewer metrics" : `More metrics (${ROWS.length - ROWS.filter((r) => r[5]).length})`}</button>
+        <span className="muted" title={`Simulated results. The ${thr} in threshold is illustrative, not a safety standard. Run ${state.run_id} · v${state.scenario_version}`}>
+          Simulated · threshold {thr} in ⓘ
+        </span>
+      </div>
     </section>
   );
 }
 
-const KIND_LABEL: Record<string, string> = {
-  live_inference: "LIVE GEMINI", recorded_inference: "RECORDED GEMINI RESULT", synthetic_fixture: "SYNTHETIC FIXTURE",
+// Short tag text plus a tooltip. "Fresh" means a new Gemini call, not a live camera feed.
+const KIND_LABEL: Record<string, [string, string]> = {
+  live_inference: ["GEMINI · FRESH", "Fresh Gemini analysis made this session (the footage itself may be archived)"],
+  recorded_inference: ["GEMINI · SAVED", "Saved result from an earlier genuine Gemini call on this same media"],
+  synthetic_fixture: ["SYNTHETIC", "Synthetic fixture, not a model output"],
 };
+const SourceTag = ({ kind }: { kind: string }) => (
+  <span className={`tag ${kind}`} title={KIND_LABEL[kind]?.[1]}>{KIND_LABEL[kind]?.[0] || kind}</span>
+);
 
 function Camera({ state, frames, network, reloadFrames, selected, onSelect }: any) {
   const [refreshing, setRefreshing] = useState(false);
@@ -323,26 +351,26 @@ function Camera({ state, frames, network, reloadFrames, selected, onSelect }: an
     finally { setRefreshing(false); }
   };
   const ago = (ts: number | null) => ts ? `${Math.round((Date.now() / 1000 - ts) / 60)} min ago` : "never";
+  const nyTip = ny.configured
+    ? `511NY auto-refresh every ${Math.round(ny.interval_s / 60)} min · last ${ago(ny.last_refresh)}${ny.last_error ? " · " + ny.last_error : ""}`
+    : "511NY key not configured; showing stored media";
   return (
     <section>
-      <h3>Road cameras (click 📹 on the map)</h3>
-      <div className="row small" style={{ alignItems: "center" }}>
-        <button onClick={refresh511} disabled={!ny.configured || refreshing}>{refreshing ? "Refreshing…" : "↻ Refresh 511NY"}</button>
-        <span className="muted">
-          {ny.configured ? `auto every ${Math.round(ny.interval_s / 60)} min · last ${ago(ny.last_refresh)}${ny.last_error ? " · " + ny.last_error : ""}`
-                         : "511NY key not configured — showing stored media"}
-        </span>
-      </div>
-      {msg && <div className="small">{msg}</div>}
-      <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); onSelect(f.frame_id); }} />
+      <h3 title="Or click a camera marker on the map">Cameras</h3>
       <div className="thumbs">
         {frames.map((f: any) => (
-          <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""} onClick={() => onSelect(f.frame_id)}>
-            {f.media_type === "video" ? "🎞" : "📷"} {f.title}<br />
-            <span className="small muted">{f.media_type === "video" ? "video" : "image"} · {f.source}</span>
+          <button key={f.frame_id} className={selected === f.frame_id ? "sel" : ""} onClick={() => onSelect(f.frame_id)}
+                  title={`${f.media_type === "video" ? "Video" : "Image"} · ${f.source}`}>
+            <Icon name={f.media_type === "video" ? "video" : "image"} /> {f.title}
           </button>
         ))}
       </div>
+      <div className="row small" style={{ alignItems: "center", marginTop: 6 }}>
+        <AddFrame network={network} onAdded={async (f: any) => { await reloadFrames(); onSelect(f.frame_id); }} />
+        <button onClick={refresh511} disabled={!ny.configured || refreshing} title={nyTip}>{refreshing ? "Refreshing…" : "↻ 511NY"}</button>
+        {ny.last_error && <span className="bad">511NY error</span>}
+      </div>
+      {msg && <div className="small">{msg}</div>}
     </section>
   );
 }
@@ -364,7 +392,9 @@ function cameraStates(state: any, frames: any[]) {
 }
 
 const effectText = (eff: any) =>
-  eff?.kind === "closure" ? "close segment → units detour" : eff?.kind === "slowdown" ? `speed ×${eff.factor} on segment` : "no change needed";
+  eff?.kind === "closure" ? "Close road" : eff?.kind === "slowdown" ? `Slow to ×${eff.factor}` : "No change";
+const effectTip = (eff: any) =>
+  eff?.kind === "closure" ? "Close the segment; units detour around it" : eff?.kind === "slowdown" ? `Units drive this segment at ${eff.factor}× speed` : "";
 
 function Decision({ state, analysis, frame, network }: any) {
   const [msg, setMsg] = useState<string | null>(null);
@@ -375,21 +405,25 @@ function Decision({ state, analysis, frame, network }: any) {
     try { await api("/api/proposals/decide", { run_id: state.run_id, frame_id: frame.frame_id, version: analysis.version, decision }); }
     catch (e: any) { setMsg(e.message); }
   };
-  if (analysis.reference_only) return <div className="small muted">Reference only for this forecast time.</div>;
+  if (analysis.reference_only) return <div className="small muted" title="Archived footage can't be applied to this forecast time">Reference only</div>;
   if (!analysis.proposed_effect || analysis.proposed_effect.kind === "none") return null;
+  const eff = analysis.proposed_effect;
   return (
     <div className="decision">
-      <div className="small">Proposed: <b>{effectText(analysis.proposed_effect)}</b> on {seg?.name || seg?.highway} ({frame.segment_ids[0]})</div>
-      {d ? (
-        <div className={`small ${d.decision === "approve" ? "good" : "muted"}`}>
-          {d.decision === "approve" ? `✔ Approved at ${fmtClock(d.sim_time_s)} — applied to both worlds` : `✖ Rejected at ${fmtClock(d.sim_time_s)}`}
-        </div>
-      ) : (
-        <div className="row">
-          <button className="approve" onClick={() => decide("approve")}>✔ Approve</button>
-          <button className="reject" onClick={() => decide("reject")}>✖ Reject</button>
-        </div>
-      )}
+      <div className="row center">
+        <span className="small grow" title={`${effectTip(eff)} · ${seg?.name || seg?.highway} (${frame.segment_ids[0]})`}>
+          <b>{effectText(eff)}</b> <span className="muted">· {seg?.name || seg?.highway}</span>
+        </span>
+        {d ? (
+          <span className={`small ${d.decision === "approve" ? "good" : "muted"}`}
+                title={d.decision === "approve" ? "Applied to both policies at the same tick" : undefined}>
+            {d.decision === "approve" ? "✔ Approved" : "✖ Rejected"} {fmtClock(d.sim_time_s)}
+          </span>
+        ) : <>
+          <button className="approve" onClick={() => decide("approve")} title="Apply to both policies">✔ Approve</button>
+          <button className="reject" onClick={() => decide("reject")}>✖</button>
+        </>}
+      </div>
       {msg && <div className="bad small">{msg}</div>}
     </div>
   );
@@ -397,17 +431,24 @@ function Decision({ state, analysis, frame, network }: any) {
 
 function AnalysisView({ analysis }: any) {
   const ts = (x: string) => x.slice(0, 16).replace("T", " ") + " UTC";
-  if (!analysis || analysis.status === "processing") return <div className="small muted">⏳ Gemini analyzing automatically…</div>;
-  if (analysis.status === "failed") return <div className="bad small">{analysis.error}</div>;
+  if (!analysis || analysis.status === "processing") return <div className="small muted" role="status">Analyzing…</div>;
+  if (analysis.status === "failed") return <div className="bad small" role="alert"><Icon name="alert" /> {analysis.error}</div>;
+  const r = analysis.result;
+  const when = analysis.recorded_at ? `recorded ${ts(analysis.recorded_at)}` : analysis.analyzed_at ? `analyzed ${ts(analysis.analyzed_at)}` : "";
+  const obstruction = r.obstruction_detected === true ? "Obstruction" : r.obstruction_detected === false ? "No obstruction" : "Obstruction unknown";
   return (
     <div className="obs">
-      <span className={`tag ${analysis.source_kind}`}>{KIND_LABEL[analysis.source_kind] || analysis.source_kind}</span>
-      <span className="small muted">
-        {analysis.model_id || ""}{analysis.recorded_at ? ` · recorded ${ts(analysis.recorded_at)}` : analysis.analyzed_at ? ` · analyzed ${ts(analysis.analyzed_at)}` : ""}
-      </span>
-      {analysis.note && <span className="small" style={{ color: "#fbbf24" }}>{analysis.note}</span>}
-      <div>Surface <b>{analysis.result.surface_class}</b> · Visibility <b>{analysis.result.visibility_class}</b> · Obstruction <b>{String(analysis.result.obstruction_detected ?? "unknown")}</b></div>
-      <div className="small muted">“{analysis.result.evidence_summary}”</div>
+      <div className="row center tight">
+        <SourceTag kind={analysis.source_kind} />
+        <span className="small muted">{[analysis.model_id, when].filter(Boolean).join(" · ")}</span>
+      </div>
+      {analysis.note && <span className="small warn-text">{analysis.note}</span>}
+      <div className="chips">
+        <span className="chip">{String(r.surface_class).replace(/_/g, " ")}</span>
+        <span className="chip">visibility {r.visibility_class}</span>
+        <span className={`chip ${r.obstruction_detected ? "chip-bad" : ""}`}>{obstruction}</span>
+      </div>
+      <div className="small muted">“{r.evidence_summary}”</div>
     </div>
   );
 }
@@ -421,16 +462,17 @@ function Proposals({ state, frames, network, onOpen }: any) {
   const pending = items.filter((x: any) => !state.camera.decisions[`${x.f.frame_id}@${x.a.version}`]).length;
   return (
     <section className="proposals">
-      <h3>Camera alerts — dispatcher decision {pending > 0 && <span className="pill">{pending} pending</span>}</h3>
+      <h3><Icon name="alert" /> Camera alerts {pending > 0 && <span className="pill">{pending} pending</span>}</h3>
       {items.map(({ a, f }: any) => (
         <div key={f.frame_id} className="proposal">
-          <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-            <b>📹 {f.title}</b>
-            <button className="small" onClick={() => onOpen(f.frame_id)}>View</button>
-          </div>
-          <div className="small">
-            <span className={`tag ${a.source_kind}`}>{KIND_LABEL[a.source_kind] || a.source_kind}</span>{" "}
-            {a.result.obstruction_detected ? "Obstruction detected" : `Visibility ${a.result.visibility_class}`} — “{a.result.evidence_summary}”
+          <div className="row center between tight">
+            <button className="link" onClick={() => onOpen(f.frame_id)} title="Open video and full Gemini result">
+              <Icon name="video" /> {f.title}
+            </button>
+            <span className="small">
+              {a.result.obstruction_detected ? <b className="bad">Obstruction</b> : <>Visibility <b>{a.result.visibility_class}</b></>}
+              {" "}<SourceTag kind={a.source_kind} />
+            </span>
           </div>
           <Decision state={state} analysis={a} frame={f} network={network} />
         </div>
@@ -449,37 +491,40 @@ function CameraViewer({ state, frame, network, onClose }: any) {
   return (
     <div className="viewer">
       <div className="viewer-head">
-        <b>📹 {frame.title}</b>
-        <button onClick={onClose}>✕</button>
+        <b><Icon name="video" /> {frame.title}</b>
+        <button className="icon-btn" onClick={onClose} aria-label="Close camera viewer"><Icon name="x" /></button>
       </div>
       {frame.media_type === "video"
         ? <video key={frame.media_url} src={frame.media_url} autoPlay muted loop playsInline controls />
         : <img src={frame.media_url} alt={frame.title} />}
-      <div className="small muted">
-        {frame.source_url ? <a href={frame.source_url} target="_blank" rel="noreferrer">{frame.source}</a> : frame.source}
-        {frame.license_note ? ` · ${frame.license_note}` : ""}
-      </div>
       <div className="small">
-        <b>Captured:</b> {frame.observed_at || "unknown"}{frame.observed_at_precision ? ` (${frame.observed_at_precision})` : ""} · <b>Archive footage</b>, not a live feed
+        <span className="tag archive">ARCHIVE</span>{" "}
+        Captured <b>{frame.observed_at ? frame.observed_at.slice(0, 10) : "unknown"}</b>
+        {frame.observed_at_precision ? <span className="muted"> ({frame.observed_at_precision})</span> : ""}
+        <span className="muted"> · {frame.relation === "adjacent" ? "near" : "on"} {frame.segment_ids.map(segName).join(", ")}</span>
       </div>
-      <div className="small muted">
-        {frame.relation === "adjacent" ? "Adjacent camera (visibility only) near" : "Mapped to"} {frame.segment_ids.map(segName).join(", ")}{frame.mapping_note ? ` — ${frame.mapping_note}` : ""}
-      </div>
-      {frame.weather_context?.length > 0 && (
-        <details className="small context">
-          <summary>🌨 Historical weather context for {frame.observed_at.slice(0, 10)} (not road depth)</summary>
+      <AnalysisView analysis={analysis} />
+      {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
+      {analysis?.status === "done" && !analysis.reference_only && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action needed.</div>}
+      <details className="small">
+        <summary>Source, mapping & weather</summary>
+        <div className="muted">
+          {frame.source_url ? <a href={frame.source_url} target="_blank" rel="noreferrer">{frame.source}</a> : frame.source}
+          {frame.license_note ? ` · ${frame.license_note}` : ""}
+        </div>
+        <div className="muted">Archive footage, not a live feed.{frame.relation === "adjacent" ? " Adjacent camera: visibility only." : ""}{frame.mapping_note ? ` ${frame.mapping_note}` : ""}</div>
+        {frame.weather_context?.length > 0 && <div className="context">
+          <b>Weather {frame.observed_at.slice(0, 10)}</b> <span className="muted">(context, not road depth)</span>
           <ul className="wx">
             {frame.weather_context.map((r: any, i: number) => (
               <li key={i}><b>{r.value_in} in</b> {r.kind === "snow_depth" ? "snow depth" : "daily snowfall"} · {r.station} · {r.when} · <a href={r.url} target="_blank" rel="noreferrer">{r.source}</a> <span className="muted">({r.use})</span></li>
             ))}
           </ul>
           <div className="muted">{frame.weather_note}</div>
-        </details>
-      )}
-      <AnalysisView analysis={analysis} />
-      {analysis?.status === "done" && <Decision state={state} analysis={analysis} frame={frame} network={network} />}
-      {analysis?.status === "done" && !analysis.reference_only && analysis.proposed_effect?.kind === "none" && <div className="small muted">No action proposed for this camera.</div>}
-      <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}>↻ Re-analyze</button></div>
+        </div>}
+      </details>
+      <div><button className="small" onClick={rerun} disabled={!analysis || analysis.status === "processing"}
+                   title="Make a fresh Gemini call on this media"><Icon name="refresh" /> Re-analyze</button></div>
     </div>
   );
 }
@@ -508,9 +553,9 @@ function AddFrame({ network, onAdded }: any) {
     setMsg(null); setOpen(false); setFile(null); setTitle("");
     onAdded(j);
   };
-  if (!open) return <button className="small" onClick={() => setOpen(true)} style={{ marginBottom: 6 }}>＋ Add camera image/video (any source)</button>;
+  if (!open) return <button className="small" onClick={() => setOpen(true)} title="Upload a camera image or video from any source"><Icon name="plus" /> Add media</button>;
   return (
-    <div className="addframe">
+    <div className="addframe" style={{ flexBasis: "100%" }}>
       <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(e) => setFile(e.target.files?.[0] || null)} />
       <input placeholder="Title (e.g. NY 33 at Grider St)" value={title} onChange={(e) => setTitle(e.target.value)} />
       <select value={source} onChange={(e) => setSource(e.target.value)}>{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
@@ -534,28 +579,39 @@ function Log({ state }: any) {
   const log = state.policies[tab].log;
   return (
     <section>
-      <h3>Dispatch decisions</h3>
-      <Radio state={state} />
+      <div className="row center between tight">
+        <h3>Dispatch</h3>
+        <Radio state={state} />
+      </div>
       {state.alerts.length > 0 && (
-        <div className="alerts">{state.alerts.slice(0, 3).map((a: any) => <div key={a.alert_id}>📻 {fmtClock(a.sim_time_s)} {a.text}</div>)}</div>
+        <div className="alerts" role="status">
+          <span className="muted">{fmtClock(state.alerts[0].sim_time_s)}</span> {state.alerts[0].text}
+          {state.alerts.length > 1 && (
+            <details className="small"><summary>{state.alerts.length - 1} earlier</summary>
+              {state.alerts.slice(1, 4).map((a: any) => <div key={a.alert_id}><span className="muted">{fmtClock(a.sim_time_s)}</span> {a.text}</div>)}
+            </details>
+          )}
+        </div>
       )}
-      <div className="row">
-        <button className={tab === "adaptive" ? "sel" : ""} onClick={() => setTab("adaptive")}>Adaptive</button>
-        <button className={tab === "fixed" ? "sel" : ""} onClick={() => setTab("fixed")}>Fixed</button>
+      <div className="seg" role="tablist" aria-label="Policy">
+        <button role="tab" aria-selected={tab === "adaptive"} className={tab === "adaptive" ? "sel" : ""} onClick={() => setTab("adaptive")}>Adaptive</button>
+        <button role="tab" aria-selected={tab === "fixed"} className={tab === "fixed" ? "sel" : ""} onClick={() => setTab("fixed")}>Baseline</button>
       </div>
       <div className="vehicles">
         {state.policies[tab].vehicles.map((v: any) => (
-          <div key={v.vehicle_id} className="small">
-            <b>{v.vehicle_id}</b> {v.label} · {v.status}{v.explanation?.target_name ? ` → ${v.explanation.target_name}` : ""}
-            <div className="muted">{v.explanation?.reason}</div>
+          <div key={v.vehicle_id} className="vrow" title={v.explanation?.reason}>
+            <span className={`veh-chip ${v.type || ""}`} title={v.label}>{v.vehicle_id}</span>
+            <span className={`status ${v.status}`}>{v.status}</span>
+            <span className="grow ellipsis">{v.explanation?.target_name || <span className="muted">—</span>}</span>
           </div>
         ))}
       </div>
       <ul className="log">
-        {log.slice(0, 12).map((e: any, i: number) => (
-          <li key={i} className={e.kind}>
-            <span className="muted">{fmtClock(e.t)}</span> <b>{e.vehicle_id}</b> {e.kind === "assign" ? `→ ${e.target_name}` : e.kind === "service" ? `cleared ${e.target_name}` : e.kind}
-            <span className="muted"> — {e.reason}</span>
+        {log.slice(0, 8).map((e: any, i: number) => (
+          <li key={i} className={e.kind} title={e.reason}>
+            <span className="muted mono">{fmtClock(e.t)}</span> <b>{e.vehicle_id}</b>{" "}
+            {e.kind === "assign" ? `→ ${e.target_name}` : e.kind === "service" ? `cleared ${e.target_name}` : e.kind}
+            {e.reason && <div className="muted ellipsis">{e.reason}</div>}
           </li>
         ))}
       </ul>
@@ -603,10 +659,10 @@ function Radio({ state }: any) {
     if (fresh.length) pump();
   }, [state.alerts, on]);
   return (
-    <div className="row small" style={{ alignItems: "center" }}>
-      <button className={on ? "sel" : ""} onClick={() => setOn(!on)}>{on ? "🔊 Radio on" : "🔈 Radio off"}</button>
-      <span className="muted">{on ? `new dispatch alerts are spoken${mode ? ` · ${mode}` : ""}` : "click to hear dispatch alerts"}</span>
-    </div>
+    <button className={`small ${on ? "sel" : ""}`} onClick={() => setOn(!on)} aria-pressed={on}
+            title={on ? `New dispatch alerts are spoken${mode ? ` (${mode})` : ""}` : "Speak new dispatch alerts aloud"}>
+      <Icon name={on ? "volume" : "mute"} /> Radio {on ? "on" : "off"}
+    </button>
   );
 }
 
@@ -619,7 +675,7 @@ function History({ state, onShow, showing }: any) {
   useEffect(() => { setCps(null); setSnap(null); setMsg(null); }, [state.run_id]);
   const load = async () => {
     setMsg(null);
-    try { const c = await api(`/api/runs/${state.run_id}/checkpoints`); setCps(c); setIdx(Math.max(0, c.length - 1)); if (!c.length) setMsg("No checkpoints stored yet (one every 15 simulated minutes)."); }
+    try { const c = await api(`/api/runs/${state.run_id}/checkpoints`); setCps(c); setIdx(Math.max(0, c.length - 1)); if (!c.length) setMsg("None yet. One is saved every 15 sim-minutes."); }
     catch (e: any) { setMsg(e.message); }
   };
   const fetchCp = async (i: number) => {
@@ -629,12 +685,12 @@ function History({ state, onShow, showing }: any) {
   const f = snap?.policies?.fixed?.metrics, a = snap?.policies?.adaptive?.metrics;
   return (
     <section>
-      <h3>History (Tiger Data)</h3>
-      {!tiger.available ? <div className="small muted">Database not connected{tiger.last_error ? ` (${tiger.last_error})` : ""}.</div> : (
+      <h3 title="Checkpoints read back from Tiger Data"><Icon name="db" /> History</h3>
+      {!tiger.available ? <div className="small muted">Database not connected{tiger.last_error ? ` (${tiger.last_error})` : ""}</div> : (
         <>
-          <div className="row small" style={{ alignItems: "center" }}>
-            <button onClick={load}>Load stored checkpoints</button>
-            <span className="muted">{tiger.rows} rows written this session</span>
+          <div className="row small center">
+            <button onClick={load}>{cps ? "Reload" : "Load checkpoints"}</button>
+            <span className="muted">{fmtCount(tiger.rows)} rows saved</span>
           </div>
           {cps && cps.length > 0 && (
             <>
@@ -648,10 +704,15 @@ function History({ state, onShow, showing }: any) {
           )}
           {snap && f && a && (
             <div className="small">
-              Stored at {fmtClock(snap.sim_time_s)}: critical exposure fixed <b>{f.critical_exposure_min}</b> vs adaptive <b>{a.critical_exposure_min}</b> min ·
-              distance {f.distance_km} vs {a.distance_km} km
-              <div className="row" style={{ marginTop: 4 }}>
-                {showing ? <button onClick={() => onShow(null)}>Back to live</button> : <button className="primary" onClick={() => onShow(snap)}>Show this checkpoint on the maps</button>}
+              <table className="metrics compact">
+                <thead><tr><th>{fmtClock(snap.sim_time_s)}</th><th style={{ color: FIXED }}>Baseline</th><th style={{ color: ADAPT }}>Adaptive</th></tr></thead>
+                <tbody>
+                  <tr><td>Critical exposure (min)</td><td>{Number(f.critical_exposure_min).toFixed(0)}</td><td>{Number(a.critical_exposure_min).toFixed(0)}</td></tr>
+                  <tr><td>Distance (km)</td><td>{Number(f.distance_km).toFixed(1)}</td><td>{Number(a.distance_km).toFixed(1)}</td></tr>
+                </tbody>
+              </table>
+              <div className="row" style={{ marginTop: 6 }}>
+                {showing ? <button onClick={() => onShow(null)}>Back to live</button> : <button className="primary" onClick={() => onShow(snap)}>Show on maps</button>}
               </div>
             </div>
           )}
@@ -698,7 +759,7 @@ function Experiment({ state, network, busy, onApply }: any) {
   const cp = network.city_priority || {};
   return (
     <details>
-      <summary>Experiment variables (both policies restart with identical inputs)</summary>
+      <summary title="Both policies restart with identical inputs">Experiment settings</summary>
       <label className="slider wide"><span>Baseline</span>
         <select value={v.baseline_policy} disabled={busy} onChange={(e) => setDraft({ ...v, baseline_policy: e.target.value })}>
           <option value="city_priority">City published priority</option>
@@ -726,12 +787,11 @@ function Experiment({ state, network, busy, onApply }: any) {
       <label className="slider"><span>Threshold</span>
         <input type="range" min={0.5} max={4} step={0.25} value={v.params.threshold_in} disabled={busy} onChange={(e) => setParam("threshold_in", Number(e.target.value))} />
         <b>{v.params.threshold_in} in</b></label>
-      <div className="row"><button className="primary" disabled={busy} onClick={() => onApply(v)}>Apply & restart both</button>
+      <div className="row"><button className="primary" disabled={busy} onClick={() => onApply(v)}>Apply & restart</button>
         {draft && <button disabled={busy} onClick={() => setDraft(null)}>Discard</button>}</div>
       <p className="muted small">
-        Start points are scenario assumptions. City priority tiers come from the City's published primary/secondary lists
-        {cp.source_urls?.[0] && <> (<a href={cp.source_urls[0]} target="_blank" rel="noreferrer">source</a>)</>}; hospital access counts as tier 1.
-        Look-ahead 0 or critical weight 0 are ablations of the adaptive policy.
+        Tiers from the City Snow Plan{cp.source_urls?.[0] && <> (<a href={cp.source_urls[0]} target="_blank" rel="noreferrer">source</a>)</>}.
+        Start points are assumptions. Set look-ahead or weight to 0 to ablate.
       </p>
     </details>
   );

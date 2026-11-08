@@ -133,13 +133,18 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
       if (!mk) {
         const d = document.createElement("div");
         d.className = "cctv";
-        d.textContent = "📹";
+        // Same stroke "video" icon as the side panel; focusable so keyboard users can open it.
+        d.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h12v10H3zM15 10l6-3v10l-6-3"/></svg>';
+        d.tabIndex = 0;
+        d.setAttribute("role", "button");
         d.addEventListener("click", (e) => { e.stopPropagation(); clickRef.current(f.frame_id); });
+        d.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); clickRef.current(f.frame_id); } });
         mk = new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
         camMarkers.current[f.frame_id] = mk;
       }
       mk.setLngLat(f.lonlat);
       mk.getElement().title = camState[f.frame_id] === "reference" ? f.title + " · Reference only" : f.title;
+      mk.getElement().setAttribute("aria-label", `Open camera: ${f.title}`);
       mk.getElement().classList.toggle("sel", f.frame_id === selectedCam);
       mk.getElement().dataset.state = camState?.[f.frame_id] || "";
     }
