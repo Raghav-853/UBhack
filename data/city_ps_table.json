@@ -1,0 +1,1451 @@
+{
+ "source": "City of Buffalo DPW, Winter Snow Plan 2026-27, Exhibit 'Citywide Primary/Secondary Designations' (pp. 26-33)",
+ "note": "Text extracted from the PDF; each entry is 'Street Name Starting Point Ending Point' as printed. Ligature extraction errors corrected (Jefferson, Suffolk).",
+ "rows": [
+  {
+   "type": "primary",
+   "entry": "/ SECONDARY STREET LISTING  PRIMARY 7th St Niagara St Court St",
+   "miles": 1.616
+  },
+  {
+   "type": "primary",
+   "entry": "Abbott Rd S Park Ave Dorrance Ave",
+   "miles": 2.294
+  },
+  {
+   "type": "secondary",
+   "entry": "Alabama St Perry St Republic St",
+   "miles": 0.481
+  },
+  {
+   "type": "primary",
+   "entry": "Allen St Wadsworth St Main St",
+   "miles": 0.503
+  },
+  {
+   "type": "primary",
+   "entry": "Amherst St Niagara St Main St",
+   "miles": 3.485
+  },
+  {
+   "type": "secondary",
+   "entry": "Ashland Ave Bidwell Pkwy Summer St",
+   "miles": 1.203
+  },
+  {
+   "type": "secondary",
+   "entry": "Auburn Ave Niagara St Richmond Ave",
+   "miles": 0.868
+  },
+  {
+   "type": "secondary",
+   "entry": "Austin St Niagara St Military Rd",
+   "miles": 0.659
+  },
+  {
+   "type": "secondary",
+   "entry": "Babcock St Clinton St Elk St",
+   "miles": 0.813
+  },
+  {
+   "type": "primary",
+   "entry": "Bailey Ave Main St S Park Ave",
+   "miles": 7.812
+  },
+  {
+   "type": "primary",
+   "entry": "Baynes St W Ferry St Forest Ave",
+   "miles": 0.859
+  },
+  {
+   "type": "primary",
+   "entry": "Berkshire Ave E Amherst St Bailey Ave",
+   "miles": 0.489
+  },
+  {
+   "type": "primary",
+   "entry": "Best St Main St Walden Ave",
+   "miles": 1.768
+  },
+  {
+   "type": "secondary",
+   "entry": "Bidwell Pkwy Richmond Ave Lincoln Pkwy",
+   "miles": 1.036
+  },
+  {
+   "type": "secondary",
+   "entry": "Bingham St Erie St Church St",
+   "miles": 0.278
+  },
+  {
+   "type": "secondary",
+   "entry": "Bird Ave Niagara St Richmond Ave",
+   "miles": 0.86
+  },
+  {
+   "type": "primary",
+   "entry": "Botanical Dr Hopkins St",
+   "miles": 1.42
+  },
+  {
+   "type": "secondary",
+   "entry": "Breckenridge St Niagara St Richmond Ave",
+   "miles": 0.875
+  },
+  {
+   "type": "primary",
+   "entry": "Broadway Main St City Line",
+   "miles": 4.411
+  },
+  {
+   "type": "secondary",
+   "entry": "Bryant St Richmond Ave Main St",
+   "miles": 0.772
+  },
+  {
+   "type": "primary",
+   "entry": "Busti Ave Niagara St Virginia St",
+   "miles": 1.518
+  },
+  {
+   "type": "secondary",
+   "entry": "Camden Ave Hertel Ave Comet Ave",
+   "miles": 0.461
+  },
+  {
+   "type": "secondary",
+   "entry": "Carlton St Main St Jefferson Ave",
+   "miles": 0.822
+  },
+  {
+   "type": "secondary",
+   "entry": "Casimer St S Ogden St City Line",
+   "miles": 0.132
+  },
+  {
+   "type": "secondary",
+   "entry": "Casimir St Houghton Park S Ogden St",
+   "miles": 0.507
+  },
+  {
+   "type": "secondary",
+   "entry": "Cazenovia Pkwy Cazenovia St Cazenovia Pkwy",
+   "miles": 0.313
+  },
+  {
+   "type": "secondary",
+   "entry": "Cazenovia Pkwy Seneca St Abbott Rd",
+   "miles": 0.603
+  },
+  {
+   "type": "primary",
+   "entry": "Cazenovia St Seneca St Abbott Rd",
+   "miles": 0.433
+  },
+  {
+   "type": "secondary",
+   "entry": "Chandler St Military Rd End",
+   "miles": 0.543
+  },
+  {
+   "type": "secondary",
+   "entry": "Chapin Pkwy Lafayette Ave Lincoln Pkwy",
+   "miles": 0.874
+  },
+  {
+   "type": "primary",
+   "entry": "Chenango St W Utica St W Ferry St",
+   "miles": 0.328
+  },
+  {
+   "type": "secondary",
+   "entry": "Cherry St Michigan Ave Jefferson Ave",
+   "miles": 0.673
+  },
+  {
+   "type": "secondary",
+   "entry": "Choate Ave S Park Ave Abbott Rd",
+   "miles": 0.715
+  },
+  {
+   "type": "primary",
+   "entry": "Church St Thruway Main St",
+   "miles": 0.614
+  },
+  {
+   "type": "primary",
+   "entry": "Clinton St Main St City Line",
+   "miles": 3.703
+  },
+  {
+   "type": "primary",
+   "entry": "Colvin Ave Amherst St Kenmore Ave",
+   "miles": 1.237
+  },
+  {
+   "type": "secondary",
+   "entry": "Comstock Ave Winspear Ave Kensington Ave",
+   "miles": 0.864
+  },
+  {
+   "type": "secondary",
+   "entry": "Connecticut St Busti Ave Richmond Ave",
+   "miles": 0.856
+  },
+  {
+   "type": "secondary",
+   "entry": "Cornwall Ave E Delavan Ave E Ferry St",
+   "miles": 0.556
+  },
+  {
+   "type": "primary",
+   "entry": "Court St Main St 7th St",
+   "miles": 0.299
+  },
+  {
+   "type": "secondary",
+   "entry": "Crowley Ave Niagara St Rano St",
+   "miles": 0.717
+  },
+  {
+   "type": "secondary",
+   "entry": "Cumberland Ave Southside Pkwy Cazenovia St",
+   "miles": 0.858
+  },
+  {
+   "type": "secondary",
+   "entry": "Dearborn St Hertel Ave Parrish St",
+   "miles": 0.617
+  },
+  {
+   "type": "secondary",
+   "entry": "Deerfield Ave E Delavan Ave Kensington Ave",
+   "miles": 0.711
+  },
+  {
+   "type": "primary",
+   "entry": "Delaware Ave W Tupper St Kenmore Ave",
+   "miles": 5.305
+  },
+  {
+   "type": "secondary",
+   "entry": "Depew Ave Parkside Ave Main St",
+   "miles": 0.721
+  },
+  {
+   "type": "secondary",
+   "entry": "Dewey Ave Main St Castle Pl",
+   "miles": 0.81
+  },
+  {
+   "type": "secondary",
+   "entry": "Dingens St Bailey Ave City line",
+   "miles": 0.83
+  },
+  {
+   "type": "secondary",
+   "entry": "Doat St Genesee St City line",
+   "miles": 1.097
+  },
+  {
+   "type": "secondary",
+   "entry": "Dodge St Main St Humboldt Pkwy",
+   "miles": 1.143
+  },
+  {
+   "type": "secondary",
+   "entry": "Dorrance Ave S Park Ave City line",
+   "miles": 1.153
+  },
+  {
+   "type": "secondary",
+   "entry": "Downing St S Park Ave City line",
+   "miles": 1.162
+  },
+  {
+   "type": "primary",
+   "entry": "E Amherst St Main St Bailey Ave",
+   "miles": 1.235
+  },
+  {
+   "type": "primary",
+   "entry": "E Chippewa St Main St Genesee St",
+   "miles": 0.14
+  },
+  {
+   "type": "primary",
+   "entry": "E Delavan Ave Main St City line",
+   "miles": 3.627
+  },
+  {
+   "type": "primary",
+   "entry": "E Eagle St Main St Michigan Ave",
+   "miles": 0.326
+  },
+  {
+   "type": "secondary",
+   "entry": "E Eagle St Michigan Ave Pine St",
+   "miles": 0.226
+  },
+  {
+   "type": "primary",
+   "entry": "E Ferry St Main St Bailey Ave",
+   "miles": 2.58
+  },
+  {
+   "type": "primary",
+   "entry": "E Huron St Main St Oak St",
+   "miles": 0.186
+  },
+  {
+   "type": "primary",
+   "entry": "E Lovejoy St Bailey Ave City line",
+   "miles": 0.758
+  },
+  {
+   "type": "primary",
+   "entry": "E Mohawk St Main St Ellicott St",
+   "miles": 0.117
+  },
+  {
+   "type": "secondary",
+   "entry": "E North St Main St Jefferson Ave",
+   "miles": 0.761
+  },
+  {
+   "type": "primary",
+   "entry": "E Parade Ave Genesee St Fougeron St",
+   "miles": 0.184
+  },
+  {
+   "type": "primary",
+   "entry": "E Tupper St Main St Michigan Ave",
+   "miles": 0.334
+  },
+  {
+   "type": "primary",
+   "entry": "E Utica St Main St Fillmore Ave",
+   "miles": 1.362
+  },
+  {
+   "type": "secondary",
+   "entry": "East End Ave E Delavan Ave Genesee St",
+   "miles": 0.299
+  },
+  {
+   "type": "secondary",
+   "entry": "East St Arthur St Parrish St",
+   "miles": 0.814
+  },
+  {
+   "type": "secondary",
+   "entry": "Edison Ave E Delavan Ave Kay St",
+   "miles": 0.851
+  },
+  {
+   "type": "primary",
+   "entry": "Eggert Rd E Delavan Ave Winspear Ave",
+   "miles": 1.874
+  },
+  {
+   "type": "primary",
+   "entry": "Elk St S Park Ave Seneca St",
+   "miles": 1.552
+  },
+  {
+   "type": "primary",
+   "entry": "Ellicott St E Tupper St Seneca St",
+   "miles": 0.951
+  },
+  {
+   "type": "secondary",
+   "entry": "Ellicott St Goodell St Riley St",
+   "miles": 1.037
+  },
+  {
+   "type": "primary",
+   "entry": "Elm St E Tupper St Seneca St",
+   "miles": 1.045
+  },
+  {
+   "type": "secondary",
+   "entry": "Elm St Virginia St Carlton St",
+   "miles": 0.112
+  },
+  {
+   "type": "primary",
+   "entry": "Elmwood Ave Niagara St Kenmore Ave",
+   "miles": 4.976
+  },
+  {
+   "type": "secondary",
+   "entry": "Emslie St Broadway Swan St",
+   "miles": 1.009
+  },
+  {
+   "type": "secondary",
+   "entry": "Englewood Ave Kenmore Ave Main St",
+   "miles": 0.564
+  },
+  {
+   "type": "primary",
+   "entry": "Erie St Franklin St End",
+   "miles": 1.534
+  },
+  {
+   "type": "secondary",
+   "entry": "Esser Ave Niagara St Skillen St",
+   "miles": 0.578
+  },
+  {
+   "type": "secondary",
+   "entry": "Exchange St Michigan Ave Smith St",
+   "miles": 1.346
+  },
+  {
+   "type": "secondary",
+   "entry": "Fields Ave Frank Ave Indian Church Rd",
+   "miles": 0.225
+  },
+  {
+   "type": "primary",
+   "entry": "Fillmore Ave Main St Seneca st",
+   "miles": 4.658
+  },
+  {
+   "type": "primary",
+   "entry": "Florence Ave Parkside Ave Main St",
+   "miles": 0.24
+  },
+  {
+   "type": "primary",
+   "entry": "Forest Ave Niagara St Delaware Ave",
+   "miles": 1.527
+  },
+  {
+   "type": "secondary",
+   "entry": "Frank Ave Mineral Springs Rd Fields Ave",
+   "miles": 0.308
+  },
+  {
+   "type": "primary",
+   "entry": "Franklin St W Seneca St North St",
+   "miles": 1.506
+  },
+  {
+   "type": "primary",
+   "entry": "French St Fillmore Ave Kehr St",
+   "miles": 0.34
+  },
+  {
+   "type": "primary",
+   "entry": "Fuhrmann Blvd Coast Guard Laborers Way",
+   "miles": 5.991
+  },
+  {
+   "type": "primary",
+   "entry": "Ganson St Michigan Ave Ohio St",
+   "miles": 0.814
+  },
+  {
+   "type": "primary",
+   "entry": "Genesee St E Huron St City line",
+   "miles": 4.278
+  },
+  {
+   "type": "secondary",
+   "entry": "Georgia St Niagara St Whitney Pl",
+   "miles": 0.122
+  },
+  {
+   "type": "secondary",
+   "entry": "Goethe St Vanderbilt St Queen St",
+   "miles": 0.524
+  },
+  {
+   "type": "primary",
+   "entry": "Goodell St Michigan Ave Rt 33",
+   "miles": 0.102
+  },
+  {
+   "type": "secondary",
+   "entry": "Goodyear Ave Broadway Sycamore St",
+   "miles": 0.496
+  },
+  {
+   "type": "primary",
+   "entry": "Grant St Hampshire St Military Rd",
+   "miles": 2.398
+  },
+  {
+   "type": "secondary",
+   "entry": "Great Arrow Ave Elmwood Ave Delaware Ave",
+   "miles": 0.54
+  },
+  {
+   "type": "secondary",
+   "entry": "Greene St King St William St",
+   "miles": 0.773
+  },
+  {
+   "type": "primary",
+   "entry": "Grider St E Delavan Ave Leroy Ave",
+   "miles": 0.732
+  },
+  {
+   "type": "secondary",
+   "entry": "Grote St Elmwood Ave Military Rd",
+   "miles": 0.681
+  },
+  {
+   "type": "secondary",
+   "entry": "Halbert St Dewey Ave Rodney Ave",
+   "miles": 0.327
+  },
+  {
+   "type": "primary",
+   "entry": "Hamburg St S Division St South St",
+   "miles": 1.07
+  },
+  {
+   "type": "secondary",
+   "entry": "Hampshire St Busti Ave Richmond Ave",
+   "miles": 0.788
+  },
+  {
+   "type": "primary",
+   "entry": "Hanna Dr Ship Canal Pkwy Commerce Dr",
+   "miles": 0.085
+  },
+  {
+   "type": "primary",
+   "entry": "Harvard Pl Main St W Delavan Ave",
+   "miles": 0.331
+  },
+  {
+   "type": "secondary",
+   "entry": "Herman St Broadway Best St",
+   "miles": 0.816
+  },
+  {
+   "type": "primary",
+   "entry": "Hertel Ave Thruway Main St",
+   "miles": 4.213
+  },
+  {
+   "type": "secondary",
+   "entry": "High St Main St Genesee St",
+   "miles": 1.256
+  },
+  {
+   "type": "secondary",
+   "entry": "Hill St Rodney Ave Leroy Ave",
+   "miles": 0.225
+  },
+  {
+   "type": "primary",
+   "entry": "Hinman Ave Military Rd Delaware Ave",
+   "miles": 1.023
+  },
+  {
+   "type": "secondary",
+   "entry": "Hodge Ave Ashland Ave Delaware Ave",
+   "miles": 0.403
+  },
+  {
+   "type": "primary",
+   "entry": "Hopkins St TiGt St Botanical Dr",
+   "miles": 1.061
+  },
+  {
+   "type": "secondary",
+   "entry": "Hotaling Dr Niagara St Tonawanda St",
+   "miles": 0.223
+  },
+  {
+   "type": "secondary",
+   "entry": "Howard St Jefferson Ave New Babcock St",
+   "miles": 1.409
+  },
+  {
+   "type": "secondary",
+   "entry": "Hoyt St W Ferry St Forest Ave",
+   "miles": 0.861
+  },
+  {
+   "type": "secondary",
+   "entry": "Hudson St Thruway Wadsworth St",
+   "miles": 0.78
+  },
+  {
+   "type": "secondary",
+   "entry": "Indian Church Rd Seneca St City line",
+   "miles": 0.339
+  },
+  {
+   "type": "primary",
+   "entry": "Jefferson Ave Swan St Main St",
+   "miles": 3.252
+  },
+  {
+   "type": "primary",
+   "entry": "Jersey St Busti Ave Lakeview Ave",
+   "miles": 0.069
+  },
+  {
+   "type": "secondary",
+   "entry": "Jewett Pkwy Parkside Ave Main St",
+   "miles": 0.387
+  },
+  {
+   "type": "secondary",
+   "entry": "Johnson St Broadway High St",
+   "miles": 0.628
+  },
+  {
+   "type": "secondary",
+   "entry": "Kay St Eggert Rd Edison Ave",
+   "miles": 0.405
+  },
+  {
+   "type": "primary",
+   "entry": "Kehr St Genesee St E Ferry St",
+   "miles": 0.647
+  },
+  {
+   "type": "primary",
+   "entry": "Kenmore Ave Vulcan St Main St",
+   "miles": 4.036
+  },
+  {
+   "type": "primary",
+   "entry": "Kensington Ave Main St City line",
+   "miles": 3.002
+  },
+  {
+   "type": "secondary",
+   "entry": "Koons Ave Genesee St Walden Ave",
+   "miles": 0.397
+  },
+  {
+   "type": "primary",
+   "entry": "La Riviere Dr Lakefront Blvd End",
+   "miles": 0.178
+  },
+  {
+   "type": "secondary",
+   "entry": "Laborers Way Fuhrmann Blvd Ship Canal Pkwy",
+   "miles": 0.517
+  },
+  {
+   "type": "primary",
+   "entry": "Lafayette Ave Niagara St Busti Ave",
+   "miles": 0.839
+  },
+  {
+   "type": "secondary",
+   "entry": "Lafayette Ave Richmond Ave Main St",
+   "miles": 1.183
+  },
+  {
+   "type": "primary",
+   "entry": "Lakefront Blvd Erie St End",
+   "miles": 0.962
+  },
+  {
+   "type": "primary",
+   "entry": "Lakeview Ave Jersey St Porter Ave",
+   "miles": 0.136
+  },
+  {
+   "type": "primary",
+   "entry": "Langfield Dr Bailey Ave Eggert Rd",
+   "miles": 0.743
+  },
+  {
+   "type": "secondary",
+   "entry": "Lathrop St Broadway Walden Ave",
+   "miles": 0.663
+  },
+  {
+   "type": "secondary",
+   "entry": "Lawn Ave Military Rd Page St",
+   "miles": 0.268
+  },
+  {
+   "type": "primary",
+   "entry": "Lee St Elk St South Park Ave",
+   "miles": 0.296
+  },
+  {
+   "type": "secondary",
+   "entry": "Leroy Ave Main St Kensington Ave",
+   "miles": 0.968
+  },
+  {
+   "type": "secondary",
+   "entry": "Letchworth St Dart St Grant St",
+   "miles": 0.123
+  },
+  {
+   "type": "secondary",
+   "entry": "Lewis St William St Clinton St",
+   "miles": 0.561
+  },
+  {
+   "type": "secondary",
+   "entry": "Lincoln Pkwy Bidwell Pkwy Great Arrow",
+   "miles": 2.116
+  },
+  {
+   "type": "secondary",
+   "entry": "Linden Ave Delaware Ave Parkside Ave",
+   "miles": 0.99
+  },
+  {
+   "type": "primary",
+   "entry": "Linwood Ave North St W Delavan Ave",
+   "miles": 1.422
+  },
+  {
+   "type": "primary",
+   "entry": "Lorraine Ave McKinley Pkwy Abbott Rd",
+   "miles": 0.286
+  },
+  {
+   "type": "primary",
+   "entry": "Louisiana St Seneca St South St",
+   "miles": 0.927
+  },
+  {
+   "type": "primary",
+   "entry": "Lower Terrace St",
+   "miles": 0.406
+  },
+  {
+   "type": "secondary",
+   "entry": "Ludington St Bailey Ave City line",
+   "miles": 0.759
+  },
+  {
+   "type": "primary",
+   "entry": "Main St S Park Ave Bailey Ave",
+   "miles": 7.14
+  },
+  {
+   "type": "secondary",
+   "entry": "Manhattan Ave E Amherst St Leroy Ave",
+   "miles": 0.512
+  },
+  {
+   "type": "secondary",
+   "entry": "Marilla St Hopkins St",
+   "miles": 0.972
+  },
+  {
+   "type": "secondary",
+   "entry": "Maryland St 4th St College St",
+   "miles": 0.724
+  },
+  {
+   "type": "primary",
+   "entry": "Massachusetts Ave Busti Ave Busti Ave",
+   "miles": 1.091
+  },
+  {
+   "type": "primary",
+   "entry": "Masten Ave Main St E North St",
+   "miles": 1.242
+  },
+  {
+   "type": "primary",
+   "entry": "McKinley Pkwy Southside Dorrance Ave",
+   "miles": 2.097
+  },
+  {
+   "type": "primary",
+   "entry": "Memorial Dr William St Broadway",
+   "miles": 0.909
+  },
+  {
+   "type": "primary",
+   "entry": "Michigan Ave Main St Ganson St",
+   "miles": 4.284
+  },
+  {
+   "type": "primary",
+   "entry": "Military Rd Amherst St Kenmore Ave",
+   "miles": 2.235
+  },
+  {
+   "type": "secondary",
+   "entry": "Miller Ave Walden Ave Broadway",
+   "miles": 0.542
+  },
+  {
+   "type": "secondary",
+   "entry": "Mills St Broadway Genesee St",
+   "miles": 0.68
+  },
+  {
+   "type": "primary",
+   "entry": "Mineral Springs Rd Seneca St City line",
+   "miles": 0.873
+  },
+  {
+   "type": "secondary",
+   "entry": "Moselle St E Delavan Ave Walden Ave",
+   "miles": 1.317
+  },
+  {
+   "type": "primary",
+   "entry": "N Division St Main St Michigan Ave",
+   "miles": 0.328
+  },
+  {
+   "type": "secondary",
+   "entry": "N Legion Dr Southside Pkwy Cazenovia St",
+   "miles": 0.91
+  },
+  {
+   "type": "secondary",
+   "entry": "N Oak St Goodell St Ellicott St",
+   "miles": 0.194
+  },
+  {
+   "type": "primary",
+   "entry": "N Ogden St Broadway William St",
+   "miles": 0.941
+  },
+  {
+   "type": "primary",
+   "entry": "N Parade Ave Fillmore Ave E Parade Ave",
+   "miles": 0.166
+  },
+  {
+   "type": "secondary",
+   "entry": "Nevada Ave E Ferry St Genesee St",
+   "miles": 0.342
+  },
+  {
+   "type": "secondary",
+   "entry": "New Babcock St William St Clinton St",
+   "miles": 0.736
+  },
+  {
+   "type": "secondary",
+   "entry": "Newfield St Vulcan St Ontario St",
+   "miles": 0.504
+  },
+  {
+   "type": "primary",
+   "entry": "Niagara Falls Blvd Kenmore Ave Main St",
+   "miles": 0.288
+  },
+  {
+   "type": "primary",
+   "entry": "Niagara Sq",
+   "miles": 0.221
+  },
+  {
+   "type": "primary",
+   "entry": "Niagara St Vulcan St E Eagle St",
+   "miles": 5.541
+  },
+  {
+   "type": "primary",
+   "entry": "Normal Ave Hampshire St Pennsylvania St",
+   "miles": 0.926
+  },
+  {
+   "type": "primary",
+   "entry": "North St Richmond Ave Main St",
+   "miles": 0.657
+  },
+  {
+   "type": "secondary",
+   "entry": "Northampton St Main St Fillmore Ave",
+   "miles": 1.426
+  },
+  {
+   "type": "secondary",
+   "entry": "Norwood Ave Summer St Lafayette Ave",
+   "miles": 1.071
+  },
+  {
+   "type": "secondary",
+   "entry": "Nottingham Ter Elmwood Ave Amherst St",
+   "miles": 1.107
+  },
+  {
+   "type": "primary",
+   "entry": "Oak St E Tupper St Seneca St",
+   "miles": 1.041
+  },
+  {
+   "type": "secondary",
+   "entry": "Oakland Pl Summer St Bryant St",
+   "miles": 0.288
+  },
+  {
+   "type": "secondary",
+   "entry": "O’Connell Ave Louisiana St Fitzgerald St",
+   "miles": 0.497
+  },
+  {
+   "type": "primary",
+   "entry": "Ohio St Michigan Ave Fuhrmann Blvd",
+   "miles": 1.468
+  },
+  {
+   "type": "primary",
+   "entry": "Ojibwa Cir Lakefront Blvd Waterfront Cir",
+   "miles": 0.214
+  },
+  {
+   "type": "secondary",
+   "entry": "Olympic Ave E Delavan Ave Kensington Ave",
+   "miles": 0.937
+  },
+  {
+   "type": "primary",
+   "entry": "Ontario St Niagara St Kenmore Ave",
+   "miles": 1.312
+  },
+  {
+   "type": "secondary",
+   "entry": "Orleans St Winspear Ave End S",
+   "miles": 0.964
+  },
+  {
+   "type": "secondary",
+   "entry": "Paderewski Dr Emslie St Memorial Dr",
+   "miles": 0.765
+  },
+  {
+   "type": "secondary",
+   "entry": "Page St Lawn Ave Race St",
+   "miles": 0.104
+  },
+  {
+   "type": "secondary",
+   "entry": "Parkdale Ave W Ferry St Forest Ave",
+   "miles": 0.862
+  },
+  {
+   "type": "secondary",
+   "entry": "Parker Ave Taunton Pl Main St",
+   "miles": 1.043
+  },
+  {
+   "type": "secondary",
+   "entry": "Parkridge Ave Winspear Ave Kensington Ave",
+   "miles": 0.995
+  },
+  {
+   "type": "primary",
+   "entry": "Parkside Ave Humboldt Pkwy Starin Ave",
+   "miles": 1.748
+  },
+  {
+   "type": "secondary",
+   "entry": "Parrish St East St Dearborn St",
+   "miles": 0.048
+  },
+  {
+   "type": "primary",
+   "entry": "Pearl St W Tupper St Upper Terrace St",
+   "miles": 0.979
+  },
+  {
+   "type": "secondary",
+   "entry": "Peckham St Jefferson Ave Memorial Dr",
+   "miles": 0.955
+  },
+  {
+   "type": "secondary",
+   "entry": "Pennsylvania St Richmond Ave Lakeview Ave",
+   "miles": 0.684
+  },
+  {
+   "type": "primary",
+   "entry": "Perry Blvd Erie St Pearl St",
+   "miles": 0.184
+  },
+  {
+   "type": "primary",
+   "entry": "Perry St Michigan Ave Hamburg St",
+   "miles": 0.699
+  },
+  {
+   "type": "secondary",
+   "entry": "Pine St Broadway Swan St",
+   "miles": 0.535
+  },
+  {
+   "type": "primary",
+   "entry": "Plymouth Ave Hampshire St Pennsylvania St",
+   "miles": 0.925
+  },
+  {
+   "type": "secondary",
+   "entry": "Poplar Ave Doat St Walden Ave",
+   "miles": 0.252
+  },
+  {
+   "type": "primary",
+   "entry": "Porter Ave LaSalle Park Richmond Ave",
+   "miles": 1.123
+  },
+  {
+   "type": "secondary",
+   "entry": "Potomac Ave Niagara St Richmond Ave",
+   "miles": 0.86
+  },
+  {
+   "type": "primary",
+   "entry": "Potters Rd Abbott Rd City line",
+   "miles": 0.721
+  },
+  {
+   "type": "primary",
+   "entry": "Prospect Ave Niagara St Pennsylvania St",
+   "miles": 1.055
+  },
+  {
+   "type": "secondary",
+   "entry": "Prospect Ave W Huron St Pennsylvania St",
+   "miles": 0.75
+  },
+  {
+   "type": "secondary",
+   "entry": "Race St Military Rd Page St",
+   "miles": 0.257
+  },
+  {
+   "type": "secondary",
+   "entry": "Ramsdell Ave Elmwood Ave Delaware Ave",
+   "miles": 0.449
+  },
+  {
+   "type": "secondary",
+   "entry": "Rano St Tonawanda St Crowley Ave",
+   "miles": 0.459
+  },
+  {
+   "type": "primary",
+   "entry": "Red Jacket Pkwy McKinley Pkwy Abbott Rd",
+   "miles": 0.293
+  },
+  {
+   "type": "secondary",
+   "entry": "Reiman St Greene St City line",
+   "miles": 0.511
+  },
+  {
+   "type": "secondary",
+   "entry": "Rhode Island St Busti Ave Richmond Ave",
+   "miles": 1.035
+  },
+  {
+   "type": "primary",
+   "entry": "Richard Dr William St S Ogden St",
+   "miles": 0.29
+  },
+  {
+   "type": "primary",
+   "entry": "Richmond Ave North St Forest Ave",
+   "miles": 1.921
+  },
+  {
+   "type": "secondary",
+   "entry": "Riley St Main St Humboldt Pkwy",
+   "miles": 1.156
+  },
+  {
+   "type": "primary",
+   "entry": "River Rock Dr Hertel Ave Rano St",
+   "miles": 0.303
+  },
+  {
+   "type": "secondary",
+   "entry": "Riverside Ave Ontario St Rano St",
+   "miles": 0.249
+  },
+  {
+   "type": "secondary",
+   "entry": "Riverside Ave Niagara St Tonawanda St",
+   "miles": 0.202
+  },
+  {
+   "type": "secondary",
+   "entry": "Robie St Parkside Ave Main St",
+   "miles": 0.238
+  },
+  {
+   "type": "secondary",
+   "entry": "Rodney Ave Main St Hill St",
+   "miles": 0.542
+  },
+  {
+   "type": "secondary",
+   "entry": "Roehrer Ave Dodge St E Ferry St",
+   "miles": 0.63
+  },
+  {
+   "type": "secondary",
+   "entry": "Roesch Ave Tonawanda St Kenmore Ave",
+   "miles": 0.765
+  },
+  {
+   "type": "primary",
+   "entry": "S Division St Main St Jefferson Ave",
+   "miles": 1.105
+  },
+  {
+   "type": "secondary",
+   "entry": "S Division St Jefferson Ave Smith St",
+   "miles": 0.536
+  },
+  {
+   "type": "primary",
+   "entry": "S Elmwood Ave Upper Terrace St W Tupper St",
+   "miles": 0.73
+  },
+  {
+   "type": "secondary",
+   "entry": "S Legion Dr Southside Pkwy Cazenovia St",
+   "miles": 0.903
+  },
+  {
+   "type": "secondary",
+   "entry": "S Michigan Ave Fuhrmann Blvd End",
+   "miles": 0.087
+  },
+  {
+   "type": "primary",
+   "entry": "S Ogden St Thielman Dr Mineral Springs Rd",
+   "miles": 1.495
+  },
+  {
+   "type": "primary",
+   "entry": "S Park Ave Michigan Ave Dorrance Ave",
+   "miles": 4.291
+  },
+  {
+   "type": "secondary",
+   "entry": "Saint Clair St Ohio St South St",
+   "miles": 0.205
+  },
+  {
+   "type": "secondary",
+   "entry": "Saint Lawrence Ave Delsan Ct N Parker Ave",
+   "miles": 1.322
+  },
+  {
+   "type": "secondary",
+   "entry": "Sanders Rd Delaware Ave Hobmoor Ave",
+   "miles": 0.769
+  },
+  {
+   "type": "secondary",
+   "entry": "Scott St Michigan Ave Louisiana St",
+   "miles": 0.383
+  },
+  {
+   "type": "primary",
+   "entry": "Seneca St Oak St City line",
+   "miles": 4.593
+  },
+  {
+   "type": "primary",
+   "entry": "Ship Canal Pkwy TiGt St Commerce Dr",
+   "miles": 1.01
+  },
+  {
+   "type": "secondary",
+   "entry": "Shoshone St Taunton Pl Hertel Ave",
+   "miles": 0.402
+  },
+  {
+   "type": "primary",
+   "entry": "Skillen St Vulcan St Military Rd",
+   "miles": 0.823
+  },
+  {
+   "type": "primary",
+   "entry": "Smith St Seneca St South Park Ave",
+   "miles": 0.607
+  },
+  {
+   "type": "secondary",
+   "entry": "Smith St Broadway Fillmore Ave",
+   "miles": 1.449
+  },
+  {
+   "type": "primary",
+   "entry": "South St Ohio St Hamburg St",
+   "miles": 0.369
+  },
+  {
+   "type": "secondary",
+   "entry": "Southside Pkwy S Park Ave Seneca St",
+   "miles": 0.944
+  },
+  {
+   "type": "secondary",
+   "entry": "Sprenger Ave Genesee St Doat St",
+   "miles": 0.476
+  },
+  {
+   "type": "secondary",
+   "entry": "Stanley St Bailey Ave Greene St",
+   "miles": 0.232
+  },
+  {
+   "type": "primary",
+   "entry": "Starin Ave Parkside Ave Kenmore Ave",
+   "miles": 0.417
+  },
+  {
+   "type": "secondary",
+   "entry": "Starin Ave Amherst St Parkside Ave",
+   "miles": 0.836
+  },
+  {
+   "type": "secondary",
+   "entry": "Stevenson St Abbott Rd Seneca St",
+   "miles": 0.463
+  },
+  {
+   "type": "secondary",
+   "entry": "Suffolk St E Delavan Ave Winspear Ave",
+   "miles": 1.806
+  },
+  {
+   "type": "primary",
+   "entry": "Summer St Richmond Ave Main St",
+   "miles": 0.696
+  },
+  {
+   "type": "primary",
+   "entry": "Swan St Main St Seneca St",
+   "miles": 1.381
+  },
+  {
+   "type": "primary",
+   "entry": "Sycamore St Oak St Walden Ave",
+   "miles": 2.812
+  },
+  {
+   "type": "primary",
+   "entry": "Tacoma Ave Delaware Ave Starin Ave",
+   "miles": 1.291
+  },
+  {
+   "type": "secondary",
+   "entry": "Tacoma Ave Starin Ave Shoshone St",
+   "miles": 0.433
+  },
+  {
+   "type": "secondary",
+   "entry": "Taunton Pl Virgil Ave Shoshone St",
+   "miles": 1.478
+  },
+  {
+   "type": "secondary",
+   "entry": "Templeton Ter Erie St End",
+   "miles": 0.054
+  },
+  {
+   "type": "primary",
+   "entry": "TiGt St Fuhrmann Blvd McKinley Pkwy",
+   "miles": 2.255
+  },
+  {
+   "type": "primary",
+   "entry": "Tonawanda St Niagara St Vulcan St",
+   "miles": 2.242
+  },
+  {
+   "type": "primary",
+   "entry": "Tracy St West Ave Elmwood Ave",
+   "miles": 0.109
+  },
+  {
+   "type": "primary",
+   "entry": "Treehaven Rd Bailey Ave Croy Ave",
+   "miles": 0.2
+  },
+  {
+   "type": "primary",
+   "entry": "Upper Terrace St W Seneca St Main St",
+   "miles": 0.227
+  },
+  {
+   "type": "secondary",
+   "entry": "Vanderbilt St Greene St Goethe St",
+   "miles": 0.428
+  },
+  {
+   "type": "secondary",
+   "entry": "Vermont St Busti Ave Richmond Ave",
+   "miles": 0.945
+  },
+  {
+   "type": "secondary",
+   "entry": "Villa Ave Delaware Ave Hobmoor Ave",
+   "miles": 0.773
+  },
+  {
+   "type": "secondary",
+   "entry": "Virginia St Elmwood Ave Jefferson Ave",
+   "miles": 0.991
+  },
+  {
+   "type": "primary",
+   "entry": "Vulcan St Niagara St Kenmore Ave",
+   "miles": 0.954
+  },
+  {
+   "type": "primary",
+   "entry": "W Chippewa St S Elmwood Ave Main St",
+   "miles": 0.276
+  },
+  {
+   "type": "secondary",
+   "entry": "W Cleveland Dr Eggert Rd City line",
+   "miles": 0.213
+  },
+  {
+   "type": "primary",
+   "entry": "W Delavan Ave Niagara St Main St",
+   "miles": 2.085
+  },
+  {
+   "type": "primary",
+   "entry": "W Eagle St S Elmwood Ave Pearl St",
+   "miles": 0.219
+  },
+  {
+   "type": "primary",
+   "entry": "W Ferry St Thruway Main St",
+   "miles": 1.901
+  },
+  {
+   "type": "primary",
+   "entry": "W Genesee St 4th St Franklin St",
+   "miles": 0.398
+  },
+  {
+   "type": "primary",
+   "entry": "W Huron St S Elmwood Ave Main St",
+   "miles": 0.276
+  },
+  {
+   "type": "primary",
+   "entry": "W Mohawk St S Elmwood Ave Main St",
+   "miles": 0.223
+  },
+  {
+   "type": "primary",
+   "entry": "W Seneca St Franklin St Main St",
+   "miles": 0.115
+  },
+  {
+   "type": "primary",
+   "entry": "W Swan St Main St Franklin St",
+   "miles": 0.116
+  },
+  {
+   "type": "primary",
+   "entry": "W Tupper St Main St S Elmwood Ave",
+   "miles": 0.281
+  },
+  {
+   "type": "primary",
+   "entry": "W Utica St Massachusetts Ave Main St",
+   "miles": 1.254
+  },
+  {
+   "type": "primary",
+   "entry": "Wadsworth St North St Allen St",
+   "miles": 0.218
+  },
+  {
+   "type": "primary",
+   "entry": "Walden Ave Genesee St City line",
+   "miles": 1.895
+  },
+  {
+   "type": "primary",
+   "entry": "Washington St Goodell St Perry St",
+   "miles": 1.361
+  },
+  {
+   "type": "secondary",
+   "entry": "Washington St Goodell St High St",
+   "miles": 0.374
+  },
+  {
+   "type": "secondary",
+   "entry": "Waterfront Cir Lakefront Blvd Lakefront Blvd",
+   "miles": 0.204
+  },
+  {
+   "type": "secondary",
+   "entry": "Weiss St Dingens St Clinton St",
+   "miles": 0.41
+  },
+  {
+   "type": "primary",
+   "entry": "West Ave Forest Ave Carolina St",
+   "miles": 2.649
+  },
+  {
+   "type": "secondary",
+   "entry": "Whitney Pl Georgia St Hudson St",
+   "miles": 0.525
+  },
+  {
+   "type": "primary",
+   "entry": "Wilkeson Way La Riviere Dr Erie St",
+   "miles": 0.095
+  },
+  {
+   "type": "primary",
+   "entry": "William L Gaiter Pkwy E Delavan Ave Kensington Ave",
+   "miles": 0.847
+  },
+  {
+   "type": "primary",
+   "entry": "William St Broadway Richard Dr",
+   "miles": 4.514
+  },
+  {
+   "type": "primary",
+   "entry": "Winspear Ave Main St Bailey Ave",
+   "miles": 1.179
+  },
+  {
+   "type": "secondary",
+   "entry": "Wohlers Ave Dodge St E Ferry St",
+   "miles": 0.63
+  },
+  {
+   "type": "secondary",
+   "entry": "Woodside Ave S Park Ave Potters Rd",
+   "miles": 0.941
+  },
+  {
+   "type": "secondary",
+   "entry": "Wyoming Ave E Delavan Ave Kensington Ave",
+   "miles": 0.713
+  },
+  {
+   "type": "secondary",
+   "entry": "York St Porter Ave Richmond Ave",
+   "miles": 0.43
+  }
+ ]
+}

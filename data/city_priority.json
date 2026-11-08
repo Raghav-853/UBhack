@@ -1,22 +1,88 @@
 {
-  "source": "City of Buffalo primary/secondary plow street lists as published by Buffalo Toronto Public Media (2026-01-15), provided by the Mayor's office; priority order and emergency-access rule from the City's 2026-27 Winter Snow Plan as reported by WKBW/WNYmedia/WIVB (Oct 2026).",
+  "source": "City of Buffalo DPW Winter Snow Plan 2026-27 (PDF provided by the team): Exhibit 'Citywide Primary/Secondary Designations' pp. 26-33 (full table in data/city_ps_table.json); operating rules pp. 8-9, 12, 16.",
   "source_urls": [
-    "https://www.btpm.org/local/2026-01-15/buffalo-find-out-which-streets-are-plowed-with-citys-online-snow-removal-tracker",
-    "https://www.wkbw.com/news/local-news/city-of-buffalo-releases-2026-2027-winter-snow-plan",
-    "https://wnymedia.net/2026/10/22/mayor-ryan-unveils-2026-27-winter-snow-plan-with-2-7-million-for-contracted-removal/"
+    "https://www.buffalony.gov/DocumentCenter/View/18119/SNOW-PLAN_26-27_FINAL-compressed"
   ],
   "published_rules": [
-    "Plow drivers focus first on primary roads, followed by secondary roads and then residential streets.",
-    "Primary and secondary streets include bus routes and access to emergency facilities (hospitals and other 24/7 critical infrastructure).",
-    "Goal: at least one plow pass on every residential street within 24 hours after a snow event ends."
+    "Snow fleet vehicles are assigned to pre-determined routes within their specific plowing district (p. 8).",
+    "Equipment may be reassigned if some areas experience a heavier or lighter rate or depth of snowfall (p. 9).",
+    "Initial focus on primaries and secondaries (which include NFTA bus routes) and streets surrounding critical City services and life-saving facilities; then residential streets (pp. 12, 16).",
+    "Goal: at least one plow pass on every residential street within 24 hours after the snow event ends (pp. 12, 16)."
   ],
   "limitations": [
-    "Matched by street name inside the corridor; listed segment limits (e.g. Main: Goodell to Bailey) were checked only approximately.",
-    "The City's 2026-27 PDF street table (P/S with limits), garage assignments and plow districts could not be retrieved (HTTP 403); a later list may differ (e.g. Fillmore limits).",
-    "Bus routes are not modeled; hospital access is approximated by the corridor's critical segments near ECMC/BNMC.",
-    "Streets absent from both lists (e.g. East Delavan Ave, Grider St, East Utica St) are treated as residential priority; they may be maintained by another agency, which was not verified."
+    "Corridor streets are matched to the City's table by normalized street name; the printed limits of every matched entry span the corridor portion (e.g. Main St: S Park Ave to Bailey Ave; Grider St: E Delavan Ave to Leroy Ave).",
+    "Pre-determined district routes, turn-by-turn route order and plow districts (pp. 35-49) are not modeled; within a tier the baseline serves the nearest segment.",
+    "Life-saving facilities are approximated by the corridor's critical segments near ECMC/BNMC; fire houses, police stations and warming centers are not modeled.",
+    "Humboldt Pkwy and Laurel St do not appear in the table and are treated as residential priority."
   ],
-  "primary": ["Main Street", "Kensington Avenue", "Fillmore Avenue", "East Ferry Street", "Humboldt Parkway",
-              "Jefferson Avenue", "Michigan Avenue", "Hertel Avenue", "Kenmore Avenue", "Amherst Street", "Delaware Avenue"],
-  "secondary": ["Dewey Avenue", "North Street", "Winspear Avenue", "Jewett Avenue", "Jewett Parkway", "East Amherst Street"]
+  "primary": [
+    "Best Street",
+    "Delaware Avenue",
+    "East Delavan Avenue",
+    "East Ferry Street",
+    "East Utica Street",
+    "Fillmore Avenue",
+    "Grider Street",
+    "Jefferson Avenue",
+    "Kensington Avenue",
+    "Main Street",
+    "Michigan Avenue",
+    "North Street",
+    "Summer Street"
+  ],
+  "secondary": [
+    "Deerfield Avenue",
+    "Dewey Avenue",
+    "East North Street"
+  ],
+  "matched_entries": {
+    "Best Street": [
+      "Best St Main St Walden Ave"
+    ],
+    "Deerfield Avenue": [
+      "Deerfield Ave E Delavan Ave Kensington Ave"
+    ],
+    "Delaware Avenue": [
+      "Delaware Ave W Tupper St Kenmore Ave"
+    ],
+    "Dewey Avenue": [
+      "Dewey Ave Main St Castle Pl"
+    ],
+    "East Delavan Avenue": [
+      "E Delavan Ave Main St City line"
+    ],
+    "East Ferry Street": [
+      "E Ferry St Main St Bailey Ave"
+    ],
+    "East North Street": [
+      "E North St Main St Jefferson Ave"
+    ],
+    "East Utica Street": [
+      "E Utica St Main St Fillmore Ave"
+    ],
+    "Fillmore Avenue": [
+      "Fillmore Ave Main St Seneca st"
+    ],
+    "Grider Street": [
+      "Grider St E Delavan Ave Leroy Ave"
+    ],
+    "Jefferson Avenue": [
+      "Jefferson Ave Swan St Main St"
+    ],
+    "Kensington Avenue": [
+      "Kensington Ave Main St City line"
+    ],
+    "Main Street": [
+      "Main St S Park Ave Bailey Ave"
+    ],
+    "Michigan Avenue": [
+      "Michigan Ave Main St Ganson St"
+    ],
+    "North Street": [
+      "North St Richmond Ave Main St"
+    ],
+    "Summer Street": [
+      "Summer St Richmond Ave Main St"
+    ]
+  }
 }

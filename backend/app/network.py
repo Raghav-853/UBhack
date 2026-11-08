@@ -88,7 +88,7 @@ class Network:
             for d in json.loads(depots_file.read_text(encoding="utf-8"))["depots"]:
                 self.start_points[d["name"]] = self.to_xy(d["lon"], d["lat"])
 
-        # Priority tiers from the City's published primary/secondary plow lists (data/city_priority.json).
+        # Priority tiers from the City DPW Winter Snow Plan 2026-27 primary/secondary table (data/city_priority.json).
         # Tier 1 = City primary or hospital access (critical segments near ECMC/BNMC), 2 = City secondary,
         # 3 = everything else (residential / not on either list).
         self.city_priority = {}

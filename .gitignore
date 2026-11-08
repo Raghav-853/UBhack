@@ -19,3 +19,6 @@ data/frames/live/
 data/frames/uploads/
 data/frames/uploads.json
 frontend/*.tsbuildinfo
+
+# Source PDF kept locally (public City document; extracted table is in data/city_ps_table.json).
+SNOW-PLAN_*.pdf
