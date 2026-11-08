@@ -119,3 +119,6 @@ button.reject { background: #3f1d1d; border-color: #7f1d1d; }
 .slider select { width: 100%; }
 .legend i.contour-edge { height: 0; border-top: 2px dashed #7dd3fc; background: none; }
 .legend i.contour-core { height: 0; border-top: 2px dashed #f0f9ff; background: none; }
+.facility { width: 15px; height: 15px; border-radius: 3px; font: 700 9px/15px system-ui; text-align: center; color: #fff; border: 1px solid #0b1220; opacity: 0.9; cursor: help; }
+.facility.hospital { background: #db2777; } .facility.police { background: #2563eb; } .facility.fire { background: #ea580c; } .facility.critical { background: #64748b; }
+.legend i.fac { width: 11px; height: 11px; border-radius: 2px; }

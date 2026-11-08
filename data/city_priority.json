@@ -1,5 +1,5 @@
 {
-  "source": "City of Buffalo DPW Winter Snow Plan 2026-27 (PDF provided by the team): Exhibit 'Citywide Primary/Secondary Designations' pp. 26-33 (full table in data/city_ps_table.json); operating rules pp. 8-9, 12, 16.",
+  "source": "City of Buffalo DPW Winter Snow Plan 2026-27 (Docs/sources/Buffalo_Winter_Snow_Plan_2026-27.pdf): Exhibit 'Citywide Primary/Secondary Designations' pp. 26-33 (full table in data/city_ps_table.json); operating rules pp. 8-9, 12, 16.",
   "source_urls": [
     "https://www.buffalony.gov/DocumentCenter/View/18119/SNOW-PLAN_26-27_FINAL-compressed"
   ],
@@ -12,8 +12,8 @@
   "limitations": [
     "Corridor streets are matched to the City's table by normalized street name; the printed limits of every matched entry span the corridor portion (e.g. Main St: S Park Ave to Bailey Ave; Grider St: E Delavan Ave to Leroy Ave).",
     "Pre-determined district routes, turn-by-turn route order and plow districts (pp. 35-49) are not modeled; within a tier the baseline serves the nearest segment.",
-    "Life-saving facilities are approximated by the corridor's critical segments near ECMC/BNMC; fire houses, police stations and warming centers are not modeled.",
-    "Humboldt Pkwy and Laurel St do not appear in the table and are treated as residential priority."
+    "Humboldt Pkwy and Laurel St do not appear in the table and are treated as residential priority.",
+    "Facility access uses geocoded hospitals, police and fire stations from the plan within 200 m of a segment (data/critical_facilities.json); warming centers are not listed with addresses and are not modeled."
   ],
   "primary": [
     "Best Street",
@@ -84,5 +84,20 @@
     "Summer Street": [
       "Summer St Richmond Ave Main St"
     ]
-  }
+  },
+  "bus_routes": [
+    "Main Street",
+    "East Ferry Street",
+    "Fillmore Avenue",
+    "Grider Street",
+    "Kensington Avenue",
+    "East Delavan Avenue",
+    "Jefferson Avenue",
+    "Michigan Avenue",
+    "East Utica Street",
+    "Best Street",
+    "Summer Street"
+  ],
+  "bus_routes_source": "NFTA Priority Clearing Bus Routes, Snow Plan pp. 58-60 (matched by street name; extents not checked per segment)",
+  "plow_districts_note": "Plow District Designations pp. 35-49 are map images: the corridor spans several districts and Main Street is a district boundary. District assignment per segment is not modeled."
 }

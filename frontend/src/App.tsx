@@ -187,6 +187,7 @@ function Legend({ rate, forecast, headingDeg, shown, onToggle }: {
         <span className="sw"><i className="closed" /> closed</span>
         <span className="sw"><i className="vdot heavy" /> heavy plow</span>
         <span className="sw"><i className="vdot compact" /> compact blower</span>
+        <span className="sw"><i className="fac" style={{ background: "#db2777" }} />H <i className="fac" style={{ background: "#2563eb" }} />P <i className="fac" style={{ background: "#ea580c" }} />F Snow Plan facilities</span>
       </div>
       <div className="legend-row snowfall-legend">
         <label className="sw"><input type="checkbox" checked={shown} onChange={(e) => onToggle(e.target.checked)} /> Show snowfall</label>

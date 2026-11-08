@@ -1,0 +1,80 @@
+{
+ "source": "City of Buffalo Winter Snow Plan 2026-27 (Docs/sources/Buffalo_Winter_Snow_Plan_2026-27.pdf): police districts p. 53, fire stations p. 54, critical City services facilities p. 61. Coordinates geocoded from OpenStreetMap (addresses via Nominatim; intersections from the OSM street graph).",
+ "rule": "Plan pp. 12, 16: initial focus includes streets surrounding critical City services and life-saving facilities (fire houses, police stations, warming centers). Modeled as: any corridor segment within 200 m of a listed facility is tier 1 (facility access).",
+ "radius_m": 200,
+ "not_found": [
+  "Fire Engine 33 (Fillmore & Buehl): intersection not found in the OSM graph"
+ ],
+ "facilities": [
+  {
+   "name": "Police C-District",
+   "kind": "police",
+   "address": "693 East Ferry Street, Buffalo, NY 14211",
+   "lat": 42.914546,
+   "lon": -78.838249
+  },
+  {
+   "name": "Fire Engine 21 / Ladder 6 / Rescue 1",
+   "kind": "fire",
+   "address": "Jefferson Avenue & Kingsley Street",
+   "lat": 42.908236,
+   "lon": -78.853965
+  },
+  {
+   "name": "Fire Engine 34 / Ladder 7",
+   "kind": "fire",
+   "address": "Main Street & Mercer Avenue",
+   "lat": 42.943851,
+   "lon": -78.834044
+  },
+  {
+   "name": "Erie County Medical Center",
+   "kind": "hospital",
+   "address": "462 Grider Street, Buffalo, NY",
+   "lat": 42.927624,
+   "lon": -78.830416
+  },
+  {
+   "name": "Sisters of Charity Hospital",
+   "kind": "hospital",
+   "address": "2157 Main Street, Buffalo, NY",
+   "lat": 42.928662,
+   "lon": -78.848214
+  },
+  {
+   "name": "Buffalo General Medical Center",
+   "kind": "hospital",
+   "address": "100 High Street, Buffalo, NY",
+   "lat": 42.901239,
+   "lon": -78.865799
+  },
+  {
+   "name": "Oishei Children's Hospital",
+   "kind": "hospital",
+   "address": "818 Ellicott Street, Buffalo, NY",
+   "lat": 42.900808,
+   "lon": -78.867772
+  },
+  {
+   "name": "Roswell Park Comprehensive Cancer Center",
+   "kind": "hospital",
+   "address": "665 Elm Street, Buffalo, NY",
+   "lat": 42.897912,
+   "lon": -78.865087
+  },
+  {
+   "name": "Buffalo Niagara Medical Campus",
+   "kind": "critical",
+   "address": "640 Ellicott Street, Buffalo, NY",
+   "lat": 42.896427,
+   "lon": -78.868887
+  },
+  {
+   "name": "National Grid",
+   "kind": "critical",
+   "address": "144 Kensington Avenue, Buffalo, NY",
+   "lat": 42.927635,
+   "lon": -78.844904
+  }
+ ]
+}

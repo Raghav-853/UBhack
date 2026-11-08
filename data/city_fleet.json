@@ -1,0 +1,26 @@
+{
+ "source": "City of Buffalo Winter Snow Plan 2026-27, Snow Fleet Inventory pp. 50-51 (status as printed)",
+ "plow_trucks": {
+  "listed": 49,
+  "up": 22,
+  "down": 18,
+  "auction": 4,
+  "on_order": 5
+ },
+ "hi_lifts": {
+  "listed": 18,
+  "up": 12,
+  "down": 6
+ },
+ "tractors": {
+  "on_order": 7
+ },
+ "small_dumps_utility": {
+  "up": 13,
+  "on_order": 2
+ },
+ "supplemental": {
+  "up": 5
+ },
+ "note": "18 of 40 plow trucks not slated for auction were listed DOWN (not operational) when the plan was published. Context for 'same fleet, better dispatch'; not used as a simulation input."
+}

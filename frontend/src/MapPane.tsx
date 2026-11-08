@@ -110,6 +110,15 @@ export default function MapPane({ title, accent, network, world, snowfall, snowf
       d.innerHTML = `<span class="star">✚</span>${name}`;
       new maplibregl.Marker({ element: d, anchor: "left" }).setLngLat(ll).addTo(m);
     }
+    // Snow Plan critical facilities (hospitals, police, fire): streets around them are tier-1 priority.
+    const icon: Record<string, string> = { hospital: "H", police: "P", fire: "F", critical: "C" };
+    for (const f of network.facilities || []) {
+      const d = document.createElement("div");
+      d.className = `facility ${f.kind}`;
+      d.textContent = icon[f.kind] || "•";
+      d.title = `${f.name} — ${f.address} (Snow Plan critical facility)`;
+      new maplibregl.Marker({ element: d }).setLngLat(f.lonlat).addTo(m);
+    }
     return () => { clearTimeout(timer); delete maps.current[syncKey]; m.remove(); };
   }, [network]);
 

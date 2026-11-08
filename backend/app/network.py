@@ -35,7 +35,8 @@ class Segment:
     mid: tuple[float, float]
     osm_way_ids: list[int] = field(default_factory=list)
     osm_tier: int = 0
-    city_class: str = "residential"  # primary | secondary | hospital_access | residential (City list)
+    city_class: str = "residential"  # primary | secondary | facility_access | hospital_access | residential
+    bus_route: bool = False
     heavy_ok: bool = False       # heavy plow may traverse and service
     compact_service: bool = False  # compact blower may service
 
@@ -96,10 +97,24 @@ class Network:
         if cp_file.exists():
             self.city_priority = json.loads(cp_file.read_text(encoding="utf-8"))
             primary, secondary = set(self.city_priority["primary"]), set(self.city_priority["secondary"])
+            bus = set(self.city_priority.get("bus_routes", []))
+            self.facilities, near_facility = [], set()
+            fac_file = DATA / "critical_facilities.json"
+            if fac_file.exists():
+                fdata = json.loads(fac_file.read_text(encoding="utf-8"))
+                for f in fdata["facilities"]:
+                    p = self.to_xy(f["lon"], f["lat"])
+                    self.facilities.append({**f, "xy": p})
+                    for s in self.segments.values():
+                        if _dist_to_polyline(p, s.xy) <= fdata.get("radius_m", 200):
+                            near_facility.add(s.id)
             for s in self.segments.values():
                 s.osm_tier = s.tier
+                s.bus_route = s.name in bus
                 if s.name in primary:
                     s.city_class, s.tier = "primary", 1
+                elif s.id in near_facility:
+                    s.city_class, s.tier = "facility_access", 1
                 elif s.critical and s.width_class == "wide":
                     s.city_class, s.tier = "hospital_access", 1
                 elif s.name in secondary:
@@ -135,7 +150,7 @@ class Network:
                     "width_class": s.width_class, "priority_tier": s.tier, "critical": s.critical,
                     "length_m": s.length_m, "coords": [self.to_ll(p) for p in s.xy],
                     "heavy_ok": s.heavy_ok, "compact_service": s.compact_service,
-                    "city_class": s.city_class,
+                    "city_class": s.city_class, "bus_route": s.bus_route,
                     "u": s.u, "v": s.v,
                 }
                 for s in self.segments.values()
@@ -146,6 +161,8 @@ class Network:
             "assumptions": self.meta.get("assumptions", []),
             "vehicle_types": VEHICLE_TYPES,
             "start_points": {k: self.to_ll(v) for k, v in self.start_points.items()},
+            "facilities": [{"name": f["name"], "kind": f["kind"], "address": f["address"], "lonlat": [f["lon"], f["lat"]]}
+                           for f in getattr(self, "facilities", [])],
             "city_priority": {k: self.city_priority.get(k) for k in ("source", "source_urls", "published_rules", "limitations")},
             "file_hash": self.file_hash,
         }
@@ -154,6 +171,16 @@ class Network:
 def _polyline_point(xy: list[tuple[float, float]], frac: float) -> tuple[float, float]:
     total = sum(math.dist(a, b) for a, b in zip(xy, xy[1:]))
     return point_along(xy, frac * total)
+
+
+def _dist_to_polyline(p: tuple[float, float], xy: list[tuple[float, float]]) -> float:
+    best = float("inf")
+    for (ax, ay), (bx, by) in zip(xy, xy[1:]):
+        dx, dy = bx - ax, by - ay
+        L2 = dx * dx + dy * dy
+        t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / L2))
+        best = min(best, math.hypot(p[0] - (ax + t * dx), p[1] - (ay + t * dy)))
+    return best
 
 
 def point_along(xy: list[tuple[float, float]], dist_m: float) -> tuple[float, float]:
