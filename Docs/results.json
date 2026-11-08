@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-07T22:37:28.547801+00:00",
-  "commit": "8415fe0",
+  "generated_at": "2026-11-08T00:14:34.851484+00:00",
+  "commit": "972c958",
   "uncommitted_changes": false,
   "params": {
     "min_service_depth_in": 1.0,
@@ -13,7 +13,8 @@
       "reduced": 0.8,
       "poor": 0.6
     },
-    "slowdown_duration_s": 3600
+    "slowdown_duration_s": 3600,
+    "baseline_policy": "city_priority"
   },
   "vehicle_types": {
     "heavy_plow": {
@@ -29,8 +30,8 @@
   },
   "results": {
     "clear_weather": {
-      "run_id": "8fa6825277",
-      "scenario_version": "1565f307d8ea",
+      "run_id": "a529e4538a",
+      "scenario_version": "90525b5d553c",
       "fleet": [
         "P1:heavy_plow",
         "B1:compact_blower"
@@ -79,8 +80,8 @@
       "description": "No snowfall. Dispatch must not invent work on clear roads."
     },
     "stationary_band": {
-      "run_id": "9a2c8fde8c",
-      "scenario_version": "da1936a8a513",
+      "run_id": "bbf5966395",
+      "scenario_version": "9d3269ff31e6",
       "fleet": [
         "P1:heavy_plow",
         "B1:compact_blower"
@@ -88,40 +89,40 @@
       "applications": [],
       "metrics": {
         "fixed": {
-          "critical_exposure_min": 5394.5,
-          "exposure_min": 17898.0,
-          "distance_km": 282.24,
-          "travel_km": 197.36,
-          "service_km": 84.88,
-          "deadhead_pct": 69.9,
-          "services": 369,
-          "unique_segments": 76,
-          "reaccumulations": 349,
-          "median_reaccum_min": 22.4,
-          "crew_hours": 11.65,
-          "inch_km_cleared": 324.19,
-          "inch_km_per_crew_hour": 27.83,
-          "critical_over_now": 26,
+          "critical_exposure_min": 2866.5,
+          "exposure_min": 19701.0,
+          "distance_km": 324.19,
+          "travel_km": 283.23,
+          "service_km": 40.96,
+          "deadhead_pct": 87.4,
+          "services": 236,
+          "unique_segments": 40,
+          "reaccumulations": 56,
+          "median_reaccum_min": 39.1,
+          "crew_hours": 11.43,
+          "inch_km_cleared": 51.99,
+          "inch_km_per_crew_hour": 4.55,
+          "critical_over_now": 17,
           "critical_total": 45,
-          "avg_critical_depth_in": 2.13
+          "avg_critical_depth_in": 1.82
         },
         "adaptive": {
-          "critical_exposure_min": 905.2,
-          "exposure_min": 13461.0,
-          "distance_km": 263.88,
-          "travel_km": 156.73,
-          "service_km": 107.15,
-          "deadhead_pct": 59.4,
-          "services": 605,
-          "unique_segments": 76,
-          "reaccumulations": 371,
-          "median_reaccum_min": 22.4,
-          "crew_hours": 11.65,
-          "inch_km_cleared": 314.75,
-          "inch_km_per_crew_hour": 27.02,
-          "critical_over_now": 5,
+          "critical_exposure_min": 19.2,
+          "exposure_min": 9285.7,
+          "distance_km": 270.42,
+          "travel_km": 179.51,
+          "service_km": 90.9,
+          "deadhead_pct": 66.4,
+          "services": 487,
+          "unique_segments": 106,
+          "reaccumulations": 134,
+          "median_reaccum_min": 42.7,
+          "crew_hours": 11.43,
+          "inch_km_cleared": 151.19,
+          "inch_km_per_crew_hour": 13.22,
+          "critical_over_now": 0,
           "critical_total": 45,
-          "avg_critical_depth_in": 0.87
+          "avg_critical_depth_in": 0.81
         }
       },
       "reproduced": true,
@@ -129,8 +130,8 @@
       "description": "A 3.5 in/hr band parked over the ECMC / Kensington area; demand stays geographically stable."
     },
     "moving_band": {
-      "run_id": "ce5799f8c5",
-      "scenario_version": "958236894c8b",
+      "run_id": "47a5b59052",
+      "scenario_version": "84e49470652d",
       "fleet": [
         "P1:heavy_plow",
         "B1:compact_blower"
@@ -138,40 +139,40 @@
       "applications": [],
       "metrics": {
         "fixed": {
-          "critical_exposure_min": 4009.0,
-          "exposure_min": 13761.0,
-          "distance_km": 278.28,
-          "travel_km": 193.22,
-          "service_km": 85.07,
-          "deadhead_pct": 69.4,
-          "services": 331,
-          "unique_segments": 103,
-          "reaccumulations": 227,
-          "median_reaccum_min": 46.7,
-          "crew_hours": 11.52,
-          "inch_km_cleared": 163.98,
-          "inch_km_per_crew_hour": 14.24,
-          "critical_over_now": 13,
+          "critical_exposure_min": 1370.3,
+          "exposure_min": 15757.3,
+          "distance_km": 312.89,
+          "travel_km": 265.34,
+          "service_km": 47.54,
+          "deadhead_pct": 84.8,
+          "services": 181,
+          "unique_segments": 61,
+          "reaccumulations": 45,
+          "median_reaccum_min": 126.4,
+          "crew_hours": 11.28,
+          "inch_km_cleared": 57.42,
+          "inch_km_per_crew_hour": 5.09,
+          "critical_over_now": 16,
           "critical_total": 45,
-          "avg_critical_depth_in": 1.3
+          "avg_critical_depth_in": 0.97
         },
         "adaptive": {
-          "critical_exposure_min": 511.5,
-          "exposure_min": 8736.3,
-          "distance_km": 272.89,
-          "travel_km": 186.36,
-          "service_km": 86.53,
-          "deadhead_pct": 68.3,
-          "services": 390,
-          "unique_segments": 103,
-          "reaccumulations": 178,
-          "median_reaccum_min": 83.1,
-          "crew_hours": 11.24,
-          "inch_km_cleared": 163.85,
-          "inch_km_per_crew_hour": 14.58,
-          "critical_over_now": 1,
+          "critical_exposure_min": 16.3,
+          "exposure_min": 6355.8,
+          "distance_km": 290.76,
+          "travel_km": 220.36,
+          "service_km": 70.4,
+          "deadhead_pct": 75.8,
+          "services": 304,
+          "unique_segments": 112,
+          "reaccumulations": 92,
+          "median_reaccum_min": 108.0,
+          "crew_hours": 11.28,
+          "inch_km_cleared": 90.4,
+          "inch_km_per_crew_hour": 8.01,
+          "critical_over_now": 0,
           "critical_total": 45,
-          "avg_critical_depth_in": 0.7
+          "avg_critical_depth_in": 0.71
         }
       },
       "reproduced": true,
@@ -179,8 +180,8 @@
       "description": "A 4 in/hr synthetic lake-effect band pivots north and south across the corridor right after a plow pass."
     },
     "moving_band_obstruction": {
-      "run_id": "41628cd515",
-      "scenario_version": "5214a3b52a35",
+      "run_id": "b20d2b4782",
+      "scenario_version": "09a4d17d1923",
       "fleet": [
         "P1:heavy_plow",
         "B1:compact_blower"
@@ -201,40 +202,40 @@
       ],
       "metrics": {
         "fixed": {
-          "critical_exposure_min": 3592.5,
-          "exposure_min": 12569.8,
-          "distance_km": 276.13,
-          "travel_km": 192.64,
-          "service_km": 83.49,
-          "deadhead_pct": 69.8,
-          "services": 325,
-          "unique_segments": 103,
-          "reaccumulations": 220,
-          "median_reaccum_min": 59.8,
-          "crew_hours": 11.46,
-          "inch_km_cleared": 164.82,
-          "inch_km_per_crew_hour": 14.38,
-          "critical_over_now": 9,
+          "critical_exposure_min": 1254.3,
+          "exposure_min": 15623.3,
+          "distance_km": 311.25,
+          "travel_km": 261.31,
+          "service_km": 49.94,
+          "deadhead_pct": 84.0,
+          "services": 191,
+          "unique_segments": 62,
+          "reaccumulations": 43,
+          "median_reaccum_min": 126.6,
+          "crew_hours": 11.28,
+          "inch_km_cleared": 61.26,
+          "inch_km_per_crew_hour": 5.43,
+          "critical_over_now": 13,
           "critical_total": 45,
-          "avg_critical_depth_in": 1.26
+          "avg_critical_depth_in": 0.89
         },
         "adaptive": {
-          "critical_exposure_min": 519.2,
-          "exposure_min": 8730.7,
-          "distance_km": 277.21,
-          "travel_km": 187.78,
-          "service_km": 89.43,
-          "deadhead_pct": 67.7,
-          "services": 401,
-          "unique_segments": 103,
-          "reaccumulations": 183,
-          "median_reaccum_min": 80.3,
-          "crew_hours": 11.43,
-          "inch_km_cleared": 166.29,
-          "inch_km_per_crew_hour": 14.54,
-          "critical_over_now": 1,
+          "critical_exposure_min": 21.7,
+          "exposure_min": 5763.2,
+          "distance_km": 285.63,
+          "travel_km": 211.82,
+          "service_km": 73.81,
+          "deadhead_pct": 74.2,
+          "services": 314,
+          "unique_segments": 115,
+          "reaccumulations": 84,
+          "median_reaccum_min": 88.9,
+          "crew_hours": 11.28,
+          "inch_km_cleared": 92.13,
+          "inch_km_per_crew_hour": 8.16,
+          "critical_over_now": 0,
           "critical_total": 45,
-          "avg_critical_depth_in": 0.62
+          "avg_critical_depth_in": 0.73
         }
       },
       "reproduced": true,
